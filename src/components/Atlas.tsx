@@ -211,7 +211,7 @@ export function Atlas(props: Props) {
         if (s.x < -40 || s.y < -40 || s.x > size.w + 40 || s.y > size.h + 40)
           continue;
         const chosen = r.id === props.selected?.id || r.id === props.focus?.id,
-          unit = Math.max(2, Math.min(7, scale * 1.4));
+          unit = Math.max(3, Math.min(7, scale * 2));
         ctx.fillStyle = chosen ? "#ffc46666" : "#071d2c55";
         ctx.beginPath();
         ctx.ellipse(s.x, s.y, unit * 1.7, unit * 0.7, 0, 0, Math.PI * 2);
@@ -233,9 +233,10 @@ export function Atlas(props: Props) {
           const label = "@" + r.nick,
             w = ctx.measureText(label).width + 20;
           ctx.fillStyle = "#071d2c";
-          ctx.fillRect(s.x - w / 2, s.y - unit * 5 - 12, w, 25);
+          const labelTop = s.y - unit * 3.5 - 34;
+          ctx.fillRect(s.x - w / 2, labelTop, w, 25);
           ctx.fillStyle = "#ffc466";
-          ctx.fillText(label, s.x, s.y - unit * 5 + 5);
+          ctx.fillText(label, s.x, labelTop + 17);
         }
       }
     }

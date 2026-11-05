@@ -219,7 +219,7 @@ export function App() {
           <div className="world-stats">
             <span>
               <b>{connected ? total.toLocaleString("es-ES") : "—"}</b>{" "}
-              habitantes registrados
+              {total === 1 ? "habitante registrado" : "habitantes registrados"}
             </span>
             <span>
               <b>{districts.length}</b> barrios fundadores

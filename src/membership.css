@@ -26,3 +26,6 @@ aside h2 em {
   font-style: normal;
   color: var(--gold);
 }
+.passport h3 {
+  font-size: 16px;
+}
