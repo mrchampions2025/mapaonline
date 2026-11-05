@@ -10,12 +10,14 @@
 - La web publicada confirma «Atlas conectado». Verificados zoom, consulta de zona, búsqueda sin resultados y disposición móvil sin desbordamiento horizontal.
 - Pruebas locales: siete comprobaciones de Postgres embebido superadas y compilación de producción correcta.
 
-## Pendiente antes de admitir participantes
+## Revisión: entrada con nick, sin correo obligatorio
 
-`VITE_REGISTRATION_OPEN=false`: el registro está cerrado de forma editorial mientras se configura la entrega de códigos.
+Se activaron Anonymous Sign-Ins y manual linking en Supabase. El primer formulario pide nick y personaje; la reserva se vincula a una identidad de invitado persistente en el navegador. `VITE_GUEST_REGISTRATION_OPEN=true` permite abrir esta entrada sin depender del correo.
 
-El proyecto usa el correo predeterminado de Supabase. El panel actual exige SMTP propio o un plan compatible para personalizar las plantillas. El proveedor predeterminado restringe destinatarios y frecuencia; no se ha probado el envío ni el registro completo con personas reales.
+El TikTok canónico de la web es @naciondeseguidores, configurado con `VITE_TIKTOK_PROFILE_URL`. La variable anterior `VITE_TIKTOK_URL` queda sin uso en el código.
 
-Configurar SMTP/remitente y la plantilla `supabase/templates/magic-link.html`, probar dos correos externos y después activar `VITE_REGISTRATION_OPEN=true` en Vercel con un nuevo despliegue. La URL de Vercel sirve para la web, no para verificar un dominio remitente de correo.
+Debajo de la parcela aparece la opción de protección por email. `VITE_REGISTRATION_OPEN=false` mantiene solo esta parte como próximamente hasta configurar remitente, plantilla de cambio de correo y entrega de códigos. No es necesario el email para crear una parcela.
 
-El panel del creador está implementado, pero no hay todavía un usuario real con permiso de administrador. Añadir su identidad en `private.atlas_admins` tras el primer acceso verificado, como explica README.
+La vinculación usa la misma identidad; confirmar un correo no acredita la propiedad del nick de TikTok. Sin vinculación, perder la sesión impide recuperar el control de la parcela solo mediante el nick.
+
+El panel del creador está implementado, pero no hay todavía un usuario real con permiso de administrador. Añadir su identidad en `private.atlas_admins` como explica README. No se han desactivado la confirmación de email ni los permisos de acceso existentes.

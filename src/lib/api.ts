@@ -7,9 +7,11 @@ export const configured =
 export const supabase = configured ? createClient(url, key) : null;
 export const registrationOpen =
   import.meta.env.VITE_REGISTRATION_OPEN === "true";
+export const guestRegistrationOpen =
+  import.meta.env.VITE_GUEST_REGISTRATION_OPEN !== "false";
 export const tiktokUrl =
-  import.meta.env.VITE_TIKTOK_URL ||
-  "https://www.tiktok.com/@Nuevopaisdeseguidores";
+  import.meta.env.VITE_TIKTOK_PROFILE_URL ||
+  "https://www.tiktok.com/@naciondeseguidores";
 function client() {
   if (!supabase) throw new Error("Falta conectar Supabase.");
   return supabase;
@@ -75,6 +77,10 @@ export function friendlyError(error: unknown) {
     return "El código ha caducado o no es válido. Solicita otro.";
   if (/fetch|network/i.test(text))
     return "No hay conexión con el atlas. Inténtalo de nuevo.";
+  if (/anonymous.*disabled|anonymous_provider_disabled/i.test(text))
+    return "El acceso de invitados se está activando. Vuelve a intentarlo en unos minutos.";
+  if (/already.*registered|already.*exists|email_exists/i.test(text))
+    return "Ese correo ya está vinculado a otra cuenta. No se ha cambiado la reserva de este navegador.";
   if (
     /Could not find the function|schema cache|relation.*does not exist/i.test(
       text,

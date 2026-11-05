@@ -1,6 +1,6 @@
 # Nación Cero · Atlas fundador
 
-Mapa persistente para **@Nuevopaisdeseguidores**. React + TypeScript + Canvas + Supabase, listo para Vercel. Arte original del proyecto. Registro por código de correo, sin contraseña; un personaje y una parcela simbólica por identidad de Supabase Auth.
+Mapa persistente para **@naciondeseguidores**. React + TypeScript + Canvas + Supabase, listo para Vercel. Arte original del proyecto. Entrada con nick y muñeco sin correo, mediante una sesión de invitado de Supabase. Correo opcional para recuperar la misma parcela desde otro dispositivo.
 
 ## Qué incluye
 
@@ -31,7 +31,7 @@ Sin configuración se puede explorar el mapa, pero no crear reservas. Si Supabas
 Proyecto previsto: `https://pgslxybrshoissckccuj.supabase.co`.
 
 1. En un proyecto nuevo, abre **SQL Editor** y ejecuta `supabase/migrations/202611050001_atlas.sql` completo. La migración es transaccional y se aplica una sola vez; no borra tablas previas para poder reejecutarse. Para un entorno ya instalado, usa migraciones nuevas.
-2. En **Authentication**, habilita Email. Deja deshabilitado el registro anónimo. Configura el método por código: en **Email Templates → Magic Link**, utiliza `{{ .Token }}` en el cuerpo en lugar de un enlace. Plantilla preparada en `supabase/templates/magic-link.html`.
+2. En **Authentication**, habilita Email. Activa **Anonymous Sign-Ins** para permitir la entrada con nick sin correo. Activa el enlace manual de identidades para convertir el invitado en cuenta con correo. Configura el método por código: en **Email Templates → Magic Link**, utiliza `{{ .Token }}` en el cuerpo en lugar de un enlace. Plantilla de acceso preparada en `supabase/templates/magic-link.html`; para proteger la parcela del invitado, configura también **Change email address** con `supabase/templates/change-email.html`.
 3. Configura SMTP propio para admitir participantes ajenos al equipo. El remitente predeterminado de Supabase tiene restricciones de destinatarios y frecuencia; no es adecuado para lanzar la serie a miles de usuarios. Puedes usar un proveedor SMTP y un dominio remitente verificado.
 4. En **URL Configuration**, establece Site URL al dominio definitivo y permite `http://localhost:5173` para desarrollo si lo necesitas. Aunque el flujo principal introduce el código en pantalla, configura correctamente el proyecto.
 5. Revisa límites de envío, expiración de códigos y protección de Auth antes de abrir el registro a una audiencia amplia. El botón limita reenvíos en la interfaz; el control real de frecuencia corresponde a Supabase Auth.
@@ -60,13 +60,13 @@ Subir el contenido de esta carpeta como raíz del repositorio. No subir `node_mo
 ```text
 VITE_SUPABASE_URL=https://pgslxybrshoissckccuj.supabase.co
 VITE_SUPABASE_PUBLISHABLE_KEY=LA_CLAVE_PUBLICA_DEL_PROYECTO
-VITE_TIKTOK_URL=https://www.tiktok.com/@Nuevopaisdeseguidores
+VITE_TIKTOK_PROFILE_URL=https://www.tiktok.com/@naciondeseguidores
 VITE_REGISTRATION_OPEN=false
 ```
 
 Vite fija estas variables durante el build. Si las cambias, vuelve a desplegar. No se necesita un servidor Node persistente: Vercel sirve la web y Supabase resuelve identidad, datos y reservas.
 
-El registro de la interfaz permanece cerrado por defecto. Cambia `VITE_REGISTRATION_OPEN=true` después de configurar SMTP y comprobar la plantilla de código. Este interruptor es editorial, no una barrera de seguridad del servidor; los permisos de datos siempre los aplican Supabase Auth, RLS y los RPC.
+La entrada de invitados está abierta por defecto con `VITE_GUEST_REGISTRATION_OPEN=true` y requiere activar el proveedor anónimo en Supabase. El correo opcional permanece cerrado: cambia `VITE_REGISTRATION_OPEN=true` solo después de configurar SMTP y comprobar las dos plantillas de código. Este interruptor es editorial, no una barrera de seguridad del servidor; los permisos de datos siempre los aplican Supabase Auth, RLS y los RPC.
 
 ## Comprobaciones
 
@@ -96,3 +96,15 @@ Antes de anunciar el enlace, prueba con dos correos reales: ambos deben recibir 
 - [Funciones SQL](https://supabase.com/docs/guides/database/functions)
 - [SMTP](https://supabase.com/docs/guides/auth/auth-smtp)
 - [Vite en Vercel](https://vercel.com/docs/frameworks/frontend/vite)
+
+## Entrada sin correo y protección posterior
+
+El primer formulario solo pide nick y personaje. `signInAnonymously()` crea una identidad de invitado cuando la persona pulsa «Crear mi lugar», nunca al visitar el mapa. La reserva permanece vinculada a ese ID y a la sesión guardada por Supabase en el navegador. No se permite recuperar una parcela escribiendo su nick.
+
+Debajo de la parcela aparece «¿Quieres asegurar tu lugar?». Añadir correo utiliza `updateUser({email})` sobre esa misma identidad; la confirmación usa `verifyOtp` con tipo `email_change`. Nunca se cambia `owner_id` por coincidencia de nick. Un correo que ya pertenece a otra cuenta se rechaza sin transferir la reserva.
+
+El nick es único en este atlas, pero no se verifica en TikTok. La confirmación de correo acredita control del correo, no propiedad de la cuenta de TikTok. Los invitados que borren datos del navegador o cambien de dispositivo no pueden recuperar su acceso sin haber protegido la parcela.
+
+Una identidad de invitado solo puede reservar una parcela. Eso no equivale a una persona real: otro navegador u otra sesión puede crear otro invitado. Supabase aplica límites por IP; antes de una campaña masiva conviene configurar CAPTCHA invisible/Turnstile sin eliminar la entrada rápida. No se borran automáticamente invitados ni parcelas de la comunidad.
+
+No pruebes un cambio de correo iniciando una sesión de email diferente: eso puede abandonar el invitado. Usa siempre el bloque de protección de su propia parcela. Prueba recuperación con un segundo navegador solo después de confirmar el email.

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { Atlas } from "./components/Atlas.tsx";
+import { Membership } from "./components/Membership.tsx";
 import * as api from "./lib/api.ts";
 import {
   AVATARS,
@@ -25,16 +26,10 @@ export function App() {
   const [mine, setMine] = useState<Resident | null>(null),
     [focus, setFocus] = useState<Resident | null>(null),
     [selected, setSelected] = useState<Resident | null>(null);
-  const [email, setEmail] = useState(""),
-    [code, setCode] = useState(""),
-    [sent, setSent] = useState(false),
-    [cooldown, setCooldown] = useState(0);
-  const [nick, setNick] = useState(""),
-    [avatar, setAvatar] = useState(0),
-    [query, setQuery] = useState(""),
-    [message, setMessage] = useState(""),
-    [error, setError] = useState(""),
-    [busy, setBusy] = useState(false);
+  const [query, setQuery] = useState("");
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
   const [admin, setAdmin] = useState(false),
     [editing, setEditing] = useState(false),
     [kind, setKind] = useState<WorldObject["kind"]>("house"),
@@ -122,7 +117,7 @@ export function App() {
     Promise.all([api.mine(), api.isAdmin()])
       .then(([r, a]) => {
         if (active) {
-          setMine(r);
+          setMine((previous) => r ?? previous);
           setAdmin(a);
         }
       })
@@ -133,11 +128,6 @@ export function App() {
       active = false;
     };
   }, [session?.user.id]);
-  useEffect(() => {
-    if (cooldown <= 0) return;
-    const t = setTimeout(() => setCooldown((c) => c - 1), 1000);
-    return () => clearTimeout(t);
-  }, [cooldown]);
   useEffect(() => {
     if (!api.configured) return;
     const initialNick = new URLSearchParams(location.search).get("vecino");
@@ -163,20 +153,6 @@ export function App() {
     } finally {
       setBusy(false);
     }
-  }
-  async function sendCode() {
-    await act(async () => {
-      const { error: e } = await api.supabase!.auth.signInWithOtp({
-        email: email.trim(),
-        options: { shouldCreateUser: true },
-      });
-      if (e) throw e;
-      setSent(true);
-      setCooldown(60);
-      setMessage(
-        "Te hemos enviado un código. Revisa también la carpeta de spam.",
-      );
-    });
   }
   const total = districts.reduce((n, d) => n + Number(d.residents), 0),
     capacity = districts.reduce((n, d) => n + Number(d.capacity), 0);
@@ -206,7 +182,7 @@ export function App() {
           el registro se activará al configurar el proyecto.
         </div>
       ) : (
-        !api.registrationOpen && (
+        !api.guestRegistrationOpen && (
           <div className="setup-banner">
             ESTAMOS FUNDANDO EL PAÍS · El atlas ya está abierto para explorar.
             Pronto abriremos el registro de habitantes.
@@ -333,223 +309,25 @@ export function App() {
           <div className="sidebar-label">
             TU PASAPORTE FUNDADOR <span>↗</span>
           </div>
-          {loadingSession ? (
-            <p className="muted">Recuperando tu sesión…</p>
-          ) : !session ? (
-            <>
-              <h2>
-                Todo empieza
-                <br />
-                con tu nombre.
-              </h2>
-              <p className="muted">
-                Entra con un código de correo. Sin contraseña. Tu correo no
-                aparece en el mapa.
-              </p>
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  if (!busy && api.configured && api.registrationOpen)
-                    void (sent
-                      ? act(async () => {
-                          const { error: e } =
-                            await api.supabase!.auth.verifyOtp({
-                              email: email.trim(),
-                              token: code.trim(),
-                              type: "email",
-                            });
-                          if (e) throw e;
-                          setCode("");
-                          setMessage("Ya estás dentro. Elige tu personaje.");
-                        })
-                      : sendCode());
-                }}
-              >
-                <label htmlFor="email">Tu correo electrónico</label>
-                <input
-                  id="email"
-                  type="email"
-                  autoComplete="email"
-                  placeholder="tu@correo.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  disabled={sent || busy}
-                />
-                {sent && (
-                  <>
-                    <label htmlFor="code">Código recibido por correo</label>
-                    <input
-                      id="code"
-                      value={code}
-                      onChange={(e) =>
-                        setCode(e.target.value.replace(/\D/g, ""))
-                      }
-                      inputMode="numeric"
-                      autoComplete="one-time-code"
-                      pattern="[0-9]{6,10}"
-                      minLength={6}
-                      maxLength={10}
-                      placeholder="Introduce el código"
-                      required
-                    />
-                  </>
-                )}
-                <p className="fineprint">
-                  Al continuar, aceptas mostrar públicamente tu nick y personaje
-                  si reservas una parcela. <a href="#reglas">Cómo funciona</a>.
-                </p>
-                <button
-                  className="primary"
-                  disabled={
-                    busy ||
-                    !api.configured ||
-                    !api.registrationOpen ||
-                    !connected
-                  }
-                >
-                  {!api.registrationOpen
-                    ? "Registro próximamente"
-                    : busy
-                      ? "Un momento…"
-                      : sent
-                        ? "Validar código →"
-                        : "Recibir código →"}
-                </button>
-              </form>
-              {sent && (
-                <div className="auth-actions">
-                  <button
-                    onClick={() => void sendCode()}
-                    disabled={busy || cooldown > 0}
-                  >
-                    {cooldown > 0
-                      ? `Reenviar en ${cooldown}s`
-                      : "Reenviar código"}
-                  </button>
-                  <button
-                    disabled={busy}
-                    onClick={() => {
-                      setSent(false);
-                      setCode("");
-                    }}
-                  >
-                    Cambiar correo
-                  </button>
-                </div>
-              )}
-            </>
-          ) : mine ? (
-            <>
-              <h2>
-                Ya tienes
-                <br />
-                tu lugar aquí.
-              </h2>
-              <div className="passport">
-                <span
-                  className="passport-avatar"
-                  style={{ color: AVATARS[mine.avatar].color }}
-                >
-                  ♟
-                </span>
-                <span className="eyebrow">HABITANTE FUNDADOR</span>
-                <h3>@{mine.nick}</h3>
-                <p>PARCELA F-{String(mine.parcel_id).padStart(4, "0")}</p>
-                <small>
-                  {DISTRICT_NAMES[Math.floor((mine.parcel_id - 1) / 1024)]}
-                </small>
-              </div>
-              <button
-                className="primary"
-                onClick={() => {
-                  setFocus({ ...mine });
-                  setSelected(mine);
-                }}
-              >
-                Llévame a mi parcela ↗
-              </button>
-              <button
-                className="secondary"
-                onClick={() =>
-                  void act(async () => {
-                    const url = new URL(location.origin);
-                    url.searchParams.set("vecino", mine.nick);
-                    await navigator.clipboard.writeText(url.toString());
-                    setMessage("Enlace de tu parcela copiado.");
-                  })
-                }
-              >
-                Copiar enlace de mi parcela
-              </button>
-            </>
-          ) : (
-            <>
-              <h2>
-                Tu personaje.
-                <br />
-                Tu primer hogar.
-              </h2>
-              <p className="muted">
-                La parcela se asigna automáticamente. Una por cuenta de correo.
-              </p>
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  void act(async () => {
-                    const r = await api.reserve(normalizeNick(nick), avatar);
-                    setMine(r);
-                    setFocus(r);
-                    setSelected(r);
-                    await sync();
-                    await loadBounds(bounds.current);
-                    setMessage(
-                      "Bienvenido. Tu lugar ya está guardado en el atlas.",
-                    );
-                  });
-                }}
-              >
-                <label htmlFor="nick">Tu nick público</label>
-                <input
-                  id="nick"
-                  value={nick}
-                  onChange={(e) => setNick(e.target.value)}
-                  placeholder="@tu_usuario"
-                  minLength={2}
-                  maxLength={25}
-                  autoComplete="off"
-                  required
-                />
-                <p className="fineprint">
-                  Puedes usar tu nick de TikTok si está libre. No verificamos su
-                  titularidad ni el seguimiento de la cuenta.
-                </p>
-                <label>Elige tu personaje</label>
-                <div className="avatars">
-                  {AVATARS.map((a, i) => (
-                    <button
-                      key={a.name}
-                      type="button"
-                      className={avatar === i ? "chosen" : ""}
-                      onClick={() => setAvatar(i)}
-                      aria-pressed={avatar === i}
-                      aria-label={a.name}
-                    >
-                      <span style={{ color: a.color }}>♟</span>
-                    </button>
-                  ))}
-                </div>
-                <p className="avatar-name">{AVATARS[avatar].name}</p>
-                <button
-                  className="primary"
-                  disabled={busy || !connected || total >= capacity}
-                >
-                  {busy ? "Asignando parcela…" : "Conseguir mi parcela →"}
-                </button>
-              </form>
-            </>
-          )}
-          {session && (
+          <Membership
+            session={session}
+            resident={mine}
+            loading={loadingSession}
+            connected={connected}
+            full={total >= capacity}
+            onLocate={(r) => {
+              setFocus({ ...r });
+              setSelected(r);
+            }}
+            onReserved={async (r) => {
+              setMine(r);
+              setFocus(r);
+              setSelected(r);
+              await sync();
+              await loadBounds(bounds.current);
+            }}
+          />
+          {session && !session.user.is_anonymous && (
             <button
               className="text-button signout"
               disabled={busy}
@@ -562,8 +340,6 @@ export function App() {
                   setEditing(false);
                   setFocus(null);
                   setSelected(null);
-                  setSent(false);
-                  setCode("");
                 })
               }
             >
@@ -735,17 +511,18 @@ export function App() {
           NACIÓN CERO <span>Un país hecho por su gente.</span>
         </div>
         <p>
-          Parcelas simbólicas, sin propiedad ni valor económico. Registro por
-          correo: no acredita la identidad en TikTok ni que sigas la cuenta. Los
-          habitantes del mapa y los seguidores de TikTok se cuentan por
+          Parcelas simbólicas, sin propiedad ni valor económico. El nick es
+          declarado: no acredita la identidad en TikTok ni que sigas la cuenta.
+          Los habitantes del mapa y los seguidores de TikTok se cuentan por
           separado.
         </p>
         <p>
-          Nick y personaje son públicos. El correo queda en Supabase Auth.
+          Nick y personaje son públicos. Sin correo, el acceso depende de la
+          sesión de este navegador. El correo es opcional y no se publica.
           Puedes retirar tu personaje desde tu sesión; para eliminar la cuenta
           completa, contacta con el creador en{" "}
           <a href={api.tiktokUrl} target="_blank" rel="noreferrer">
-            @Nuevopaisdeseguidores
+            @naciondeseguidores
           </a>
           .
         </p>
