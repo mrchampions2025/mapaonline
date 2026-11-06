@@ -273,6 +273,12 @@ export function Membership({
                   throw new Error(
                     "Usa de 2 a 24 letras, números, puntos o guiones bajos.",
                   );
+                const existing = await api.search(normalized);
+                if (existing?.origin === "comment") {
+                  setNotice("¡Ya apareces por participar en los comentarios! Hemos localizado tu personaje. Escribir el nick permite verlo; la gestión de esta entrada requiere verificar la cuenta de TikTok.");
+                  onLocate(existing);
+                  return;
+                }
                 await enterAsGuest(api.supabase!.auth);
                 const result = await api.reserve(normalized, avatar);
                 await onReserved(result);

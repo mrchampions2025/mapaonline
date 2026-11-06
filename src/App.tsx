@@ -23,6 +23,8 @@ export function App() {
   const [districts, setDistricts] = useState(emptyDistricts),
     [residents, setResidents] = useState<Resident[]>([]),
     [objects, setObjects] = useState<WorldObject[]>([]);
+  const [directory, setDirectory] = useState<Resident[]>([]);
+  const [directoryMore, setDirectoryMore] = useState(false);
   const [mine, setMine] = useState<Resident | null>(null),
     [focus, setFocus] = useState<Resident | null>(null),
     [selected, setSelected] = useState<Resident | null>(null);
@@ -49,9 +51,11 @@ export function App() {
   const sync = useCallback(async () => {
     if (!api.configured) return;
     try {
-      const [d, o] = await Promise.all([api.districts(), api.objects()]);
+      const [d, o, roster] = await Promise.all([api.districts(), api.objects(), api.directory()]);
       setDistricts(d);
       setObjects(o);
+      setDirectory(roster);
+      setDirectoryMore(roster.length === 100);
       setConnected(true);
     } catch (e) {
       setConnected(false);
@@ -446,7 +450,7 @@ export function App() {
           <div className="world-stats" id="atlas-map">
             <span>
               <b>{connected ? total.toLocaleString("es-ES") : "—"}</b>{" "}
-              {total === 1 ? "habitante registrado" : "habitantes registrados"}
+              {total === 1 ? "vecino en el mapa" : "vecinos en el mapa"}
             </span>
             <span>
               <b>{districts.length}</b> barrios fundadores
@@ -487,7 +491,8 @@ export function App() {
                 <strong>@{selected.nick}</strong>
                 <span>
                   Parcela F-{String(selected.parcel_id).padStart(4, "0")} ·
-                  Nombre público sin verificar en TikTok
+                  {selected.origin === "comment" ? " Añadido por comentar" : " Registro desde la web"}
+                  {selected.alias ? ` · ${selected.alias}` : ""}
                 </span>
               </div>
               <button
@@ -499,6 +504,27 @@ export function App() {
               </button>
             </div>
           )}
+          <section className="community-directory" aria-label="Vecinos de la comunidad">
+            <p className="eyebrow">LA COMUNIDAD YA TIENE NOMBRES</p>
+            <h2>Encuentra a tus vecinos.</h2>
+            <p className="muted">Quienes se apuntan en la web y quienes participan en los comentarios comparten este mapa. Pulsa un nick para ver su muñeco y su parcela.</p>
+            <ul>
+              {directory.map((r) => (
+                <li key={r.id}>
+                  <button onClick={() => showMyPlace(r)}>
+                    <span className="avatar-dot" style={{background: AVATARS[r.avatar].color}} />
+                    <span><strong>@{r.nick}</strong><small>F-{String(r.parcel_id).padStart(4,"0")} · {r.origin === "comment" ? "Desde comentarios" : "Desde la web"}</small></span>
+                    <span aria-hidden="true">↗</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+            {directoryMore && <button className="secondary" disabled={busy} onClick={() => void act(async () => {
+              const more = await api.directory(directory.at(-1)?.parcel_id || 0);
+              setDirectory((previous) => [...previous,...more.filter((r) => !previous.some((p) => p.id === r.id))]);
+              setDirectoryMore(more.length === 100);
+            })}>Ver más vecinos</button>}
+          </section>
           <div className="below-map">
             <section>
               <p className="eyebrow">UN SITIO QUE ES TUYO</p>

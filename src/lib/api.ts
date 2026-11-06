@@ -34,6 +34,14 @@ export async function mine(): Promise<Resident | null> {
   if (error) throw error;
   return data?.[0] || null;
 }
+export async function directory(after = 0): Promise<Resident[]> {
+  const { data, error } = await client().rpc("atlas_directory", {
+    p_after: after,
+    p_limit: 100,
+  });
+  if (error) throw error;
+  return data || [];
+}
 export async function reserve(nick: string, avatar: number): Promise<Resident> {
   const { data, error } = await client().rpc("reserve_parcel", {
     p_nick: nick,

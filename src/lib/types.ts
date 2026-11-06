@@ -7,6 +7,8 @@ export type Resident = {
   x?: number;
   y?: number;
   district_id?: number;
+  origin?: "web" | "comment";
+  alias?: string | null;
 };
 export type District = {
   id: number;

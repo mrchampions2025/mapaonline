@@ -229,6 +229,15 @@ export function Atlas(props: Props) {
           ctx.font = "bold 11px system-ui";
           ctx.textAlign = "center";
           ctx.fillText(String(d.id), p.x, p.y + 4);
+          if (Number(d.residents) > 0) {
+            const label = `${Number(d.residents).toLocaleString("es-ES")} vecinos`;
+            ctx.font = "bold 12px system-ui";
+            const width = ctx.measureText(label).width + 20;
+            ctx.fillStyle = "#071d2c";
+            ctx.fillRect(p.x-width/2,p.y+20,width,25);
+            ctx.fillStyle = "#70e0c1";
+            ctx.fillText(label,p.x,p.y+37);
+          }
         }
       } else {
         // Solo trazar casillas de la zona visible; no existe un nodo DOM por habitante.
