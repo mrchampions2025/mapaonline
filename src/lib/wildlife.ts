@@ -15,8 +15,8 @@ export function drawWildlife(
       h = 90 * scale;
     const frame = Math.floor(time * 12) % 64;
     ctx.save();
-    // The toes remain planted at y=.84 of the texture throughout the loop.
-    // A narrow contact shadow sits under the feet, with no floating bob.
+    // Measured toe positions in the original sprite. Each foot has a contact
+    // shadow on its own ground plane; the texture never floats up and down.
     ctx.fillStyle = "#163b3540";
     ctx.beginPath();
     ctx.ellipse(
@@ -29,6 +29,24 @@ export function drawWildlife(
       Math.PI * 2,
     );
     ctx.fill();
+    ctx.fillStyle = "#17382e85";
+    for (const [fx, fy] of [
+      [0.2208, 0.7713],
+      [0.4422, 0.8553],
+      [0.6571, 0.8008],
+    ]) {
+      ctx.beginPath();
+      ctx.ellipse(
+        p.x + (fx - 0.5) * w,
+        p.y + (fy - 0.8553 + 0.004) * h,
+        w * 0.057,
+        h * 0.013,
+        -0.12,
+        0,
+        Math.PI * 2,
+      );
+      ctx.fill();
+    }
     ctx.strokeStyle = "#648c4d";
     ctx.lineWidth = Math.max(1, scale);
     for (let g = 0; g < 5; g++) {
@@ -47,7 +65,7 @@ export function drawWildlife(
       320,
       320,
       p.x - w * 0.5,
-      p.y - h * 0.84,
+      p.y - h * 0.8553,
       w,
       h,
     );
