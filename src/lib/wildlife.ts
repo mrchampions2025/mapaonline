@@ -6,18 +6,51 @@ export function drawWildlife(
   screen: (x: number, y: number) => Point,
   scale: number,
   triceratops: HTMLImageElement | null,
+  time = 0,
 ) {
   const b = project(27, 23),
     p = screen(b.x, b.y);
   if (triceratops) {
-    const w = 172 * scale,
-      h = 172 * scale;
+    const w = 90 * scale,
+      h = 90 * scale;
+    const frame = Math.floor(time * 12) % 64;
     ctx.save();
-    ctx.fillStyle = "#071d2c38";
+    // The toes remain planted at y=.84 of the texture throughout the loop.
+    // A narrow contact shadow sits under the feet, with no floating bob.
+    ctx.fillStyle = "#163b3540";
     ctx.beginPath();
-    ctx.ellipse(p.x, p.y, w * 0.36, h * 0.1, 0, 0, Math.PI * 2);
+    ctx.ellipse(
+      p.x - w * 0.06,
+      p.y - h * 0.025,
+      w * 0.25,
+      h * 0.035,
+      -0.12,
+      0,
+      Math.PI * 2,
+    );
     ctx.fill();
-    ctx.drawImage(triceratops, p.x - w * 0.5, p.y - h * 0.88, w, h);
+    ctx.strokeStyle = "#648c4d";
+    ctx.lineWidth = Math.max(1, scale);
+    for (let g = 0; g < 5; g++) {
+      const x = p.x + w * (0.27 + g * 0.025),
+        y = p.y - h * 0.025;
+      ctx.beginPath();
+      ctx.moveTo(x - 2 * scale, y);
+      ctx.lineTo(x, y - 5 * scale);
+      ctx.lineTo(x + 2 * scale, y);
+      ctx.stroke();
+    }
+    ctx.drawImage(
+      triceratops,
+      (frame % 8) * 320,
+      Math.floor(frame / 8) * 320,
+      320,
+      320,
+      p.x - w * 0.5,
+      p.y - h * 0.84,
+      w,
+      h,
+    );
     ctx.fillStyle = "#102b37";
     ctx.font = `600 ${Math.max(9, Math.min(13, 11 * scale))}px system-ui`;
     ctx.textAlign = "center";
@@ -31,6 +64,7 @@ export function drawWildlife(
     const q = project(gx, gy),
       p = screen(q.x, q.y),
       s = 10 * scale;
+    const grazing = (1 + Math.sin(time * 0.8 + gx)) * 0.06;
     ctx.save();
     ctx.translate(p.x, p.y);
     ctx.strokeStyle = "#6d4937";
@@ -46,7 +80,15 @@ export function drawWildlife(
     ctx.ellipse(0, -s * 0.35, s, s * 0.48, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.beginPath();
-    ctx.ellipse(s * 0.9, -s * 0.9, s * 0.35, s * 0.55, -0.4, 0, Math.PI * 2);
+    ctx.ellipse(
+      s * 0.9,
+      -s * (0.9 - grazing),
+      s * 0.35,
+      s * 0.55,
+      -0.4 + grazing,
+      0,
+      Math.PI * 2,
+    );
     ctx.fill();
     for (const x of [s * 0.7, s * 1.05]) {
       ctx.beginPath();
@@ -92,18 +134,19 @@ export function drawWildlife(
     [10, 33],
   ]) {
     const q = project(gx, gy),
-      p = screen(q.x, q.y);
+      p = screen(q.x + Math.sin(time * 0.5 + gx) * 5, q.y);
+    const wing = (3 + Math.sin(time * 4 + gx) * 2) * scale;
     ctx.beginPath();
     ctx.moveTo(p.x - 8 * scale, p.y - 28 * scale);
     ctx.quadraticCurveTo(
       p.x - 3 * scale,
-      p.y - 33 * scale,
+      p.y - 28 * scale - wing,
       p.x,
       p.y - 27 * scale,
     );
     ctx.quadraticCurveTo(
       p.x + 3 * scale,
-      p.y - 33 * scale,
+      p.y - 28 * scale - wing,
       p.x + 8 * scale,
       p.y - 28 * scale,
     );
