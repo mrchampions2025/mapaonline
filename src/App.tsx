@@ -154,6 +154,23 @@ export function App() {
       setBusy(false);
     }
   }
+  function scrollToSection(id: string) {
+    document.getElementById(id)?.scrollIntoView({
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        ? "auto"
+        : "smooth",
+      block: "start",
+    });
+  }
+  function openMembership() {
+    scrollToSection("mi-lugar");
+    document.getElementById("member-nick")?.focus({ preventScroll: true });
+  }
+  function showMyPlace(resident: Resident) {
+    setFocus({ ...resident });
+    setSelected(resident);
+    requestAnimationFrame(() => scrollToSection("atlas-map"));
+  }
   const total = districts.reduce((n, d) => n + Number(d.residents), 0),
     capacity = districts.reduce((n, d) => n + Number(d.capacity), 0);
   const shownResidents = [...residents];
@@ -173,6 +190,13 @@ export function App() {
           <a href={api.tiktokUrl} target="_blank" rel="noreferrer">
             La historia en TikTok <span>↗</span>
           </a>
+          <button
+            className="header-join"
+            onClick={openMembership}
+            aria-controls="mi-lugar"
+          >
+            {mine ? "Mi parcela ↗" : "Crear mi lugar ↗"}
+          </button>
           <span className="pill">TEMPORADA 01</span>
         </nav>
       </header>
@@ -190,143 +214,31 @@ export function App() {
         )
       )}
       <div className="layout">
-        <main>
-          <div className="intro">
-            <div>
-              <p className="eyebrow">
-                UN PERSONAJE. UNA PARCELA. UNA HISTORIA.
-              </p>
-              <h1>
-                Llegaste antes
-                <br />
-                que <em>la capital.</em>
-              </h1>
-              <p className="lead">
-                Este país lo construimos entre todos.
-                <br />
-                Encuentra tu lugar y deja tu nick en el mapa.
-              </p>
-            </div>
-            <div className="intro-mark" aria-hidden="true">
-              <span>01</span>
-              <small>
-                EL COMIENZO
-                <br />
-                DE ALGO GRANDE
-              </small>
-            </div>
-          </div>
-          <div className="world-stats">
-            <span>
-              <b>{connected ? total.toLocaleString("es-ES") : "—"}</b>{" "}
-              {total === 1 ? "habitante registrado" : "habitantes registrados"}
-            </span>
-            <span>
-              <b>{districts.length}</b> barrios fundadores
-            </span>
-            <span className="status">
-              <i className={connected ? "live-dot" : "offline-dot"} />
-              {connected
-                ? "Atlas conectado"
-                : api.configured
-                  ? "Conectando atlas"
-                  : "Modo vista previa"}
-            </span>
-          </div>
-          <Atlas
-            districts={districts}
-            residents={shownResidents}
-            objects={objects}
-            focus={focus}
-            selected={selected}
-            editing={editing}
-            onSelect={setSelected}
-            onPoint={(x, y) => setPoint({ x, y })}
-            onBounds={loadBounds}
-          />
-          {mapTruncated && (
-            <p className="muted">
-              Esta zona tiene muchos vecinos. Acércate más para verlos con
-              detalle.
-            </p>
-          )}
-          {selected && (
-            <div className="resident-card">
-              <span
-                className="avatar-dot"
-                style={{ background: AVATARS[selected.avatar].color }}
-              />
-              <div>
-                <strong>@{selected.nick}</strong>
-                <span>
-                  Parcela F-{String(selected.parcel_id).padStart(4, "0")} ·
-                  Nombre público sin verificar en TikTok
-                </span>
-              </div>
-              <button
-                className="text-button"
-                onClick={() => setSelected(null)}
-                aria-label="Cerrar ficha de habitante"
-              >
-                ×
-              </button>
-            </div>
-          )}
-          <div className="below-map">
-            <section>
-              <p className="eyebrow">UN SITIO QUE ES TUYO</p>
-              <h2>
-                Una pequeña parcela.
-                <br />
-                Un gran comienzo.
-              </h2>
-              <p>
-                Tu personaje conserva su lugar mientras el país crece. Las
-                nuevas ciudades, los caminos y los puertos se deciden en los
-                capítulos de la serie.
-              </p>
-            </section>
-            <section className="district-list">
-              <p className="eyebrow">NUESTROS PRIMEROS BARRIOS</p>
-              {districts.map((d) => (
-                <div key={d.id}>
-                  <span>
-                    <i />
-                    {d.name}
-                  </span>
-                  <b>
-                    {Number(d.residents).toLocaleString("es-ES")}{" "}
-                    <small>
-                      / {Number(d.capacity).toLocaleString("es-ES")}
-                    </small>
-                  </b>
-                </div>
-              ))}
-            </section>
-          </div>
-        </main>
         <aside>
-          <div className="sidebar-label">
-            TU PASAPORTE FUNDADOR <span>↗</span>
-          </div>
-          <Membership
-            session={session}
-            resident={mine}
-            loading={loadingSession}
-            connected={connected}
-            full={total >= capacity}
-            onLocate={(r) => {
-              setFocus({ ...r });
-              setSelected(r);
-            }}
-            onReserved={async (r) => {
-              setMine(r);
-              setFocus(r);
-              setSelected(r);
-              await sync();
-              await loadBounds(bounds.current);
-            }}
-          />
+          <section
+            className="join-card"
+            id="mi-lugar"
+            aria-label="Consigue tu parcela"
+          >
+            <div className="sidebar-label">
+              {mine ? "TU PASAPORTE FUNDADOR" : "TU PARCELA EMPIEZA AQUÍ"}{" "}
+              <span>↘</span>
+            </div>
+            <Membership
+              session={session}
+              resident={mine}
+              loading={loadingSession}
+              connected={connected}
+              full={total >= capacity}
+              onLocate={showMyPlace}
+              onReserved={async (r) => {
+                setMine(r);
+                await sync();
+                showMyPlace(r);
+                await loadBounds(bounds.current);
+              }}
+            />
+          </section>
           {session && !session.user.is_anonymous && (
             <button
               className="text-button signout"
@@ -505,6 +417,121 @@ export function App() {
             </details>
           )}
         </aside>
+        <main>
+          <div className="intro">
+            <div>
+              <p className="eyebrow">
+                UN PERSONAJE. UNA PARCELA. UNA HISTORIA.
+              </p>
+              <h1>
+                Llegaste antes
+                <br />
+                que <em>la capital.</em>
+              </h1>
+              <p className="lead">
+                Este país lo construimos entre todos.
+                <br />
+                Encuentra tu lugar y deja tu nick en el mapa.
+              </p>
+            </div>
+            <div className="intro-mark" aria-hidden="true">
+              <span>01</span>
+              <small>
+                EL COMIENZO
+                <br />
+                DE ALGO GRANDE
+              </small>
+            </div>
+          </div>
+          <div className="world-stats" id="atlas-map">
+            <span>
+              <b>{connected ? total.toLocaleString("es-ES") : "—"}</b>{" "}
+              {total === 1 ? "habitante registrado" : "habitantes registrados"}
+            </span>
+            <span>
+              <b>{districts.length}</b> barrios fundadores
+            </span>
+            <span className="status">
+              <i className={connected ? "live-dot" : "offline-dot"} />
+              {connected
+                ? "Atlas conectado"
+                : api.configured
+                  ? "Conectando atlas"
+                  : "Modo vista previa"}
+            </span>
+          </div>
+          <Atlas
+            districts={districts}
+            residents={shownResidents}
+            objects={objects}
+            focus={focus}
+            selected={selected}
+            editing={editing}
+            onSelect={setSelected}
+            onPoint={(x, y) => setPoint({ x, y })}
+            onBounds={loadBounds}
+          />
+          {mapTruncated && (
+            <p className="muted">
+              Esta zona tiene muchos vecinos. Acércate más para verlos con
+              detalle.
+            </p>
+          )}
+          {selected && (
+            <div className="resident-card">
+              <span
+                className="avatar-dot"
+                style={{ background: AVATARS[selected.avatar].color }}
+              />
+              <div>
+                <strong>@{selected.nick}</strong>
+                <span>
+                  Parcela F-{String(selected.parcel_id).padStart(4, "0")} ·
+                  Nombre público sin verificar en TikTok
+                </span>
+              </div>
+              <button
+                className="text-button"
+                onClick={() => setSelected(null)}
+                aria-label="Cerrar ficha de habitante"
+              >
+                ×
+              </button>
+            </div>
+          )}
+          <div className="below-map">
+            <section>
+              <p className="eyebrow">UN SITIO QUE ES TUYO</p>
+              <h2>
+                Una pequeña parcela.
+                <br />
+                Un gran comienzo.
+              </h2>
+              <p>
+                Tu personaje conserva su lugar mientras el país crece. Las
+                nuevas ciudades, los caminos y los puertos se deciden en los
+                capítulos de la serie.
+              </p>
+            </section>
+            <section className="district-list">
+              <p className="eyebrow">NUESTROS PRIMEROS BARRIOS</p>
+              {districts.map((d) => (
+                <div key={d.id}>
+                  <span>
+                    <i />
+                    {d.name}
+                  </span>
+                  <b>
+                    {Number(d.residents).toLocaleString("es-ES")}{" "}
+                    <small>
+                      / {Number(d.capacity).toLocaleString("es-ES")}
+                    </small>
+                  </b>
+                </div>
+              ))}
+            </section>
+          </div>
+        </main>
       </div>
       <footer id="reglas">
         <div className="footer-brand">

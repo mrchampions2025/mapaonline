@@ -255,14 +255,12 @@ export function Membership({
       ) : (
         <>
           <h2>
-            Tu nick.
+            Escribe tu nick.
             <br />
-            Tu muñeco.
-            <br />
-            <em>Tu lugar.</em>
+            <em>Entra en el mapa.</em>
           </h2>
           <p className="muted">
-            Únete con tu nick de TikTok. Sin correo ni contraseña para empezar.
+            Consigue tu muñeco y tu parcela. Sin correo ni contraseña.
           </p>
           <form
             onSubmit={(e) => {

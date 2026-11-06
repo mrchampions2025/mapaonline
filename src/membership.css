@@ -29,3 +29,166 @@ aside h2 em {
 .passport h3 {
   font-size: 16px;
 }
+.layout > main {
+  grid-column: 1;
+  grid-row: 1;
+}
+.layout > aside {
+  grid-column: 2;
+  grid-row: 1;
+  padding: 24px 18px;
+}
+.header-join {
+  background: var(--gold);
+  color: #102b38;
+  border: 0;
+  border-radius: 9px;
+  padding: 12px 17px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.header-join:hover {
+  background: #ffda97;
+}
+.join-card {
+  border: 1px solid #b9904b;
+  border-top: 4px solid var(--gold);
+  border-radius: 17px;
+  padding: 24px 20px;
+  background: radial-gradient(
+    ellipse at top right,
+    #36504b 0%,
+    #102f3b 48%,
+    #0a2433 100%
+  );
+  box-shadow:
+    0 12px 36px #0003,
+    0 0 30px #ffc4660a;
+  scroll-margin-top: 20px;
+}
+.join-card .sidebar-label {
+  color: var(--gold);
+  border-bottom-color: #4d615b;
+  margin-bottom: 22px;
+  padding-bottom: 17px;
+  letter-spacing: 1.1px;
+}
+.join-card h2 {
+  font-size: 29px;
+}
+.join-card #member-nick {
+  background: #f8f3e8;
+  color: #102b38;
+  border: 2px solid var(--gold);
+  padding: 15px 13px;
+  font-size: 18px;
+  font-weight: 600;
+}
+.join-card #member-nick::placeholder {
+  color: #6a7f86;
+  font-weight: 400;
+}
+.join-card label[for="member-nick"] {
+  color: #ffdda6;
+  font-size: 13px;
+  font-weight: 700;
+}
+.join-card form > .primary {
+  font-size: 14px;
+  min-height: 50px;
+  box-shadow: 0 5px 18px #ffc46618;
+}
+#atlas-map {
+  scroll-margin-top: 20px;
+}
+@media (max-width: 1050px) {
+  .layout > aside {
+    padding: 24px 14px;
+  }
+  .join-card {
+    padding: 21px 17px;
+  }
+  .header nav {
+    gap: 13px;
+  }
+}
+@media (max-width: 780px) {
+  .header {
+    height: 72px;
+    padding: 0 18px;
+  }
+  .header .pill {
+    display: none;
+  }
+  .header nav {
+    gap: 0;
+  }
+  .header-join {
+    font-size: 11px;
+    padding: 11px 13px;
+  }
+  .layout > aside {
+    padding: 18px 18px 26px;
+    border-top: 0;
+  }
+  .join-card {
+    padding: 20px;
+    border-radius: 15px;
+  }
+  .join-card .sidebar-label {
+    font-size: 9px;
+    margin-bottom: 17px;
+    padding-bottom: 13px;
+  }
+  .join-card h2 {
+    font-size: 29px;
+    margin-bottom: 10px;
+  }
+  .join-card .muted {
+    margin: 0 0 13px;
+    font-size: 12px;
+  }
+  .join-card label {
+    margin-top: 16px;
+  }
+  .join-card .avatars button {
+    height: 49px;
+    font-size: 31px;
+  }
+  .join-card .avatar-name {
+    margin-bottom: 15px;
+  }
+  .layout > main {
+    border-top: 1px solid var(--line);
+  }
+}
+@media (max-width: 380px) {
+  .header {
+    padding: 0 12px;
+  }
+  .brand {
+    gap: 9px;
+  }
+  .brand b {
+    font-size: 13px;
+  }
+  .brand small {
+    font-size: 6px;
+    letter-spacing: 1px;
+  }
+  .header .logo {
+    width: 34px;
+    height: 37px;
+    font-size: 24px;
+  }
+  .layout > aside {
+    padding: 14px 12px 24px;
+  }
+  .join-card {
+    padding: 18px;
+  }
+  .join-card h2 {
+    font-size: 27px;
+  }
+}
