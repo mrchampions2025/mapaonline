@@ -261,6 +261,10 @@ h1 em {
   flex-direction: column;
   gap: 5px;
 }
+.zone-navigation { display: flex; gap: 8px; margin: 0 0 12px; flex-wrap: wrap; }
+.zone-navigation button { display: flex; align-items: center; justify-content: center; gap: 10px; flex: 1 1 190px; border: 1px solid #365565; border-radius: 10px; padding: 12px; background: #0a2533; color: #eff2e9; font-size: 12px; }
+.zone-navigation b { font-size: 20px; }
+.zone-navigation button:hover, .zone-navigation button:focus-visible, .zone-navigation button[aria-pressed="true"] { border-color: #ffc466; background: #163746; }
 .map-controls button {
   height: 35px;
   width: 35px;

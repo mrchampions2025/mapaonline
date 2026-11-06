@@ -71,10 +71,6 @@ export function drawWildlife(
       w,
       h,
     );
-    ctx.fillStyle = "#102b37";
-    ctx.font = `600 ${Math.max(9, Math.min(13, 11 * scale))}px system-ui`;
-    ctx.textAlign = "center";
-    ctx.fillText("ZONA B · VALLE VERDE", p.x, p.y + Math.max(16, 20 * scale));
     ctx.restore();
   }
   drawArticulatedFauna(ctx, screen, scale, animalSprites, time);

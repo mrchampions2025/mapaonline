@@ -3,6 +3,7 @@ import type { Bounds, District, Resident, WorldObject } from "../lib/types.ts";
 import { drawWildlife } from "../lib/wildlife.ts";
 import type { AnimalName, AnimalSprites } from "../lib/fauna_atlas.ts";
 import { AVATARS, parcelPosition } from "../lib/world.ts";
+import { CAPITAL_ZONES, drawCapitalZones } from "../lib/zones.ts";
 type Props = {
   districts: District[];
   residents: Resident[];
@@ -59,6 +60,9 @@ export function Atlas(props: Props) {
   }, []);
   const fit = Math.min(size.w / 1450, size.h / 850),
     scale = fit * cam.zoom;
+  const activeZone = CAPITAL_ZONES.find(
+    (z) => cam.zoom >= 2 && Math.hypot(cam.x - z.x, cam.y - z.y) < 2,
+  );
   function screen(x: number, y: number) {
     return {
       x: (x - cam.x) * scale + size.w / 2,
@@ -299,6 +303,7 @@ export function Atlas(props: Props) {
           }
         }
       }
+      drawCapitalZones(ctx, screen, size.w, size.h);
     }
     function animate(now: number) {
       if (!document.hidden && now - lastFrame >= 1000 / 12) {
@@ -323,6 +328,17 @@ export function Atlas(props: Props) {
     animalSprites,
   ]);
   return (
+    <>
+    <nav className="zone-navigation" aria-label="Ir a las zonas del mapa">
+      {CAPITAL_ZONES.map((zone) => (
+        <button key={zone.id} aria-pressed={activeZone?.id === zone.id}
+          onClick={() => setCam({ x: zone.x, y: zone.y, zoom: 3.5 })}>
+          <b style={{ color: zone.color }}>{zone.id}</b>
+          <span>Zona {zone.id} · {zone.name}</span>
+          <span aria-hidden="true">↗</span>
+        </button>
+      ))}
+    </nav>
     <div className={"atlas " + (props.editing ? "editing" : "")} ref={box}>
       <canvas
         ref={canvas}
@@ -376,6 +392,14 @@ export function Atlas(props: Props) {
             props.onPoint(Math.round(p.x), Math.round(p.y));
             return;
           }
+          const zone = CAPITAL_ZONES.find((z) => {
+            const dx = (p.x - z.x) * scale, dy = (p.y - z.y) * scale;
+            return Math.hypot(dx, dy + 36) < 22 || (Math.abs(dx) < 90 && dy > 12 && dy < 38);
+          });
+          if (zone) {
+            setCam({ x: zone.x, y: zone.y, zoom: 3.5 });
+            return;
+          }
           if (cam.zoom < 2) {
             const nearest = props.districts.reduce<District | null>(
               (a, b) =>
@@ -399,7 +423,7 @@ export function Atlas(props: Props) {
       />
       <div className="atlas-label">
         <span className="live-dot" /> ARCHIPIÉLAGO 01 <span>/</span>{" "}
-        {cam.zoom < 2 ? "VISTA GENERAL" : "BARRIO FUNDADOR"}
+        {cam.zoom < 2 ? "VISTA GENERAL" : activeZone ? `ZONA ${activeZone.id} · ${activeZone.name.toLocaleUpperCase("es")}` : "EXPLORANDO EL ATLAS"}
       </div>
       <div className="map-controls">
         <button aria-label="Acercar mapa" onClick={() => zoom(1.5)}>
@@ -421,5 +445,6 @@ export function Atlas(props: Props) {
       </div>
       <span className="zoom-badge">{cam.zoom.toFixed(1)}×</span>
     </div>
+    </>
   );
 }
