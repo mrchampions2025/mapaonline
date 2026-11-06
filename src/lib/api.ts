@@ -9,9 +9,7 @@ export const registrationOpen =
   import.meta.env.VITE_REGISTRATION_OPEN === "true";
 export const guestRegistrationOpen =
   import.meta.env.VITE_GUEST_REGISTRATION_OPEN !== "false";
-export const tiktokUrl =
-  import.meta.env.VITE_TIKTOK_PROFILE_URL ||
-  "https://www.tiktok.com/@naciondeseguidores";
+export const tiktokUrl = "https://www.tiktok.com/@paisde.seguidores";
 function client() {
   if (!supabase) throw new Error("Falta conectar Supabase.");
   return supabase;

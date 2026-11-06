@@ -1,6 +1,6 @@
 # Nación Cero · Atlas fundador
 
-Mapa persistente para **@naciondeseguidores**. React + TypeScript + Canvas + Supabase, listo para Vercel. Arte original del proyecto. Entrada con nick y muñeco sin correo, mediante una sesión de invitado de Supabase. Correo opcional para recuperar la misma parcela desde otro dispositivo.
+Mapa persistente para **@paisde.seguidores**. React + TypeScript + Canvas + Supabase, listo para Vercel. Arte original del proyecto. Entrada con nick y muñeco sin correo, mediante una sesión de invitado de Supabase. Correo opcional para recuperar la misma parcela desde otro dispositivo.
 
 ## Qué incluye
 
@@ -60,7 +60,7 @@ Subir el contenido de esta carpeta como raíz del repositorio. No subir `node_mo
 ```text
 VITE_SUPABASE_URL=https://pgslxybrshoissckccuj.supabase.co
 VITE_SUPABASE_PUBLISHABLE_KEY=LA_CLAVE_PUBLICA_DEL_PROYECTO
-VITE_TIKTOK_PROFILE_URL=https://www.tiktok.com/@naciondeseguidores
+VITE_TIKTOK_PROFILE_URL=https://www.tiktok.com/@paisde.seguidores
 VITE_REGISTRATION_OPEN=false
 ```
 

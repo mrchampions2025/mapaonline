@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { Bounds, District, Resident, WorldObject } from "../lib/types.ts";
+import { drawWildlife } from "../lib/wildlife.ts";
 import { AVATARS, parcelPosition } from "../lib/world.ts";
 type Props = {
   districts: District[];
@@ -26,6 +27,15 @@ export function Atlas(props: Props) {
     cam: Camera;
     moved: boolean;
   } | null>(null);
+  const [triSprite, setTriSprite] = useState<HTMLImageElement | null>(null);
+  useEffect(() => {
+    const sprite = new Image();
+    sprite.onload = () => setTriSprite(sprite);
+    sprite.src = "/wildlife/triceratops.webp";
+    return () => {
+      sprite.onload = null;
+    };
+  }, []);
   const fit = Math.min(size.w / 1450, size.h / 850),
     scale = fit * cam.zoom;
   function screen(x: number, y: number) {
@@ -105,6 +115,7 @@ export function Atlas(props: Props) {
       const p = screen(0, 0);
       ctx.drawImage(image, p.x, p.y, 1600 * scale, 2000 * scale);
     }
+    drawWildlife(ctx, screen, scale, triSprite);
     for (const obj of props.objects) {
       const p = screen(obj.x, obj.y);
       if (p.x < -50 || p.x > size.w + 50 || p.y < -50 || p.y > size.h + 50)
@@ -249,6 +260,7 @@ export function Atlas(props: Props) {
     props.districts,
     props.selected,
     props.focus,
+    triSprite,
   ]);
   return (
     <div className={"atlas " + (props.editing ? "editing" : "")} ref={box}>

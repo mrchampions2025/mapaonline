@@ -549,7 +549,7 @@ export function App() {
           Puedes retirar tu personaje desde tu sesión; para eliminar la cuenta
           completa, contacta con el creador en{" "}
           <a href={api.tiktokUrl} target="_blank" rel="noreferrer">
-            @naciondeseguidores
+            @paisde.seguidores
           </a>
           .
         </p>
