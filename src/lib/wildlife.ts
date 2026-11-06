@@ -1,3 +1,4 @@
+import { drawArticulatedFauna, type AnimalSprites } from "./fauna_atlas.ts";
 import { project } from "./world.ts";
 type Point = { x: number; y: number };
 /** Fauna escénica; no representa miembros, parcelas ni resultados de votación. */
@@ -7,6 +8,7 @@ export function drawWildlife(
   scale: number,
   triceratops: HTMLImageElement | null,
   time = 0,
+  animalSprites: AnimalSprites = {},
 ) {
   const b = project(27, 23),
     p = screen(b.x, b.y);
@@ -75,74 +77,7 @@ export function drawWildlife(
     ctx.fillText("ZONA B · VALLE VERDE", p.x, p.y + Math.max(16, 20 * scale));
     ctx.restore();
   }
-  for (const [gx, gy] of [
-    [14, 25],
-    [16, 26],
-  ]) {
-    const q = project(gx, gy),
-      p = screen(q.x, q.y),
-      s = 10 * scale;
-    const grazing = (1 + Math.sin(time * 0.8 + gx)) * 0.06;
-    ctx.save();
-    ctx.translate(p.x, p.y);
-    ctx.strokeStyle = "#6d4937";
-    ctx.lineWidth = Math.max(1, 2 * scale);
-    for (const x of [-s * 0.55, s * 0.45]) {
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, s);
-      ctx.stroke();
-    }
-    ctx.fillStyle = "#c39766";
-    ctx.beginPath();
-    ctx.ellipse(0, -s * 0.35, s, s * 0.48, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.ellipse(
-      s * 0.9,
-      -s * (0.9 - grazing),
-      s * 0.35,
-      s * 0.55,
-      -0.4 + grazing,
-      0,
-      Math.PI * 2,
-    );
-    ctx.fill();
-    for (const x of [s * 0.7, s * 1.05]) {
-      ctx.beginPath();
-      ctx.moveTo(x, -s * 1.2);
-      ctx.lineTo(x - s * 0.1, -s * 1.9);
-      ctx.lineTo(x - s * 0.45, -s * 2.1);
-      ctx.moveTo(x - s * 0.1, -s * 1.65);
-      ctx.lineTo(x + s * 0.25, -s * 1.95);
-      ctx.stroke();
-    }
-    ctx.restore();
-  }
-  for (const [gx, gy] of [
-    [31, 28],
-    [32, 29],
-    [22, 34],
-  ]) {
-    const q = project(gx, gy),
-      p = screen(q.x, q.y),
-      s = 6 * scale;
-    ctx.save();
-    ctx.translate(p.x, p.y);
-    ctx.fillStyle = "#f6ead7";
-    ctx.beginPath();
-    ctx.ellipse(0, 0, s, s * 0.6, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.ellipse(s * 0.7, -s * 0.5, s * 0.5, s * 0.5, 0, 0, Math.PI * 2);
-    ctx.fill();
-    for (const x of [s * 0.6, s]) {
-      ctx.beginPath();
-      ctx.ellipse(x, -s * 1.3, s * 0.15, s * 0.65, -0.2, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    ctx.restore();
-  }
+  drawArticulatedFauna(ctx, screen, scale, animalSprites, time);
   ctx.save();
   ctx.strokeStyle = "#e5efec";
   ctx.lineWidth = Math.max(1, scale * 1.8);

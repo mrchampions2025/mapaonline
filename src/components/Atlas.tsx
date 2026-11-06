@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Bounds, District, Resident, WorldObject } from "../lib/types.ts";
 import { drawWildlife } from "../lib/wildlife.ts";
+import type { AnimalName, AnimalSprites } from "../lib/fauna_atlas.ts";
 import { AVATARS, parcelPosition } from "../lib/world.ts";
 type Props = {
   districts: District[];
@@ -28,6 +29,26 @@ export function Atlas(props: Props) {
     moved: boolean;
   } | null>(null);
   const [triSprite, setTriSprite] = useState<HTMLImageElement | null>(null);
+  const [animalSprites, setAnimalSprites] = useState<AnimalSprites>({});
+  useEffect(() => {
+    let alive = true;
+    const images: HTMLImageElement[] = [];
+    for (const name of ["deer", "rabbit", "chicken"] as AnimalName[]) {
+      const image = new Image();
+      images.push(image);
+      image.onload = () => {
+        if (alive)
+          setAnimalSprites((current) => ({ ...current, [name]: image }));
+      };
+      image.src = `/wildlife/${name}-atlas.webp`;
+    }
+    return () => {
+      alive = false;
+      images.forEach((image) => {
+        image.onload = null;
+      });
+    };
+  }, []);
   useEffect(() => {
     const sprite = new Image();
     sprite.onload = () => setTriSprite(sprite);
@@ -126,6 +147,7 @@ export function Atlas(props: Props) {
         scale,
         triSprite,
         reducedMotion.matches ? 0 : now / 1000,
+        animalSprites,
       );
       for (const obj of props.objects) {
         const p = screen(obj.x, obj.y);
@@ -289,6 +311,7 @@ export function Atlas(props: Props) {
     props.selected,
     props.focus,
     triSprite,
+    animalSprites,
   ]);
   return (
     <div className={"atlas " + (props.editing ? "editing" : "")} ref={box}>
