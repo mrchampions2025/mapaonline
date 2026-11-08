@@ -1,0 +1,452 @@
+[
+  {
+    "id": "P01",
+    "author": "maravaf",
+    "title": "Puesto de patatas atendido por capibaras",
+    "group": "Comercio",
+    "status": "Construido",
+    "nextStep": "Visible y animado en terreno común de Bahía del Sol",
+    "parcel": 72,
+    "source": "https://www.tiktok.com/@paisde.seguidores/video/7705199681772506390"
+  },
+  {
+    "id": "P02",
+    "author": "dinofan_10",
+    "title": "Tricerátops herbívoro",
+    "group": "Animales",
+    "status": "Construido",
+    "nextStep": "Ya pasta en el mapa; mantener su animación",
+    "parcel": 14,
+    "source": "https://www.tiktok.com/@paisde.seguidores/video/7704811569359768865"
+  },
+  {
+    "id": "P03",
+    "author": "luchiheredia16",
+    "title": "Casita pequeña con un árbol en A",
+    "group": "Viviendas",
+    "status": "Propuesta pendiente",
+    "nextStep": "Presentar diseño y ubicación para aprobación",
+    "parcel": 39,
+    "source": "https://www.tiktok.com/@paisde.seguidores/video/7704811569359768865"
+  },
+  {
+    "id": "P04",
+    "author": "pixel_drag0n",
+    "title": "Casas y cultivos",
+    "group": "Alimentación",
+    "status": "Propuesta pendiente",
+    "nextStep": "Presentar diseño y ubicación para aprobación",
+    "parcel": 49,
+    "source": "https://www.tiktok.com/@paisde.seguidores/video/7705063582198762774"
+  },
+  {
+    "id": "P05",
+    "author": "pixel_drag0n",
+    "title": "Economía de producción y recursos",
+    "group": "Reglas del país",
+    "status": "Por diseñar",
+    "nextStep": "Definir recursos, producción y reglas antes de programar la economía",
+    "parcel": 49,
+    "source": "https://www.tiktok.com/@paisde.seguidores/video/7705063582198762774"
+  },
+  {
+    "id": "P06",
+    "author": "kender.villanueva2",
+    "title": "Muelle para pescar",
+    "group": "Alimentación",
+    "status": "Propuesta pendiente",
+    "nextStep": "Presentar diseño y ubicación para aprobación",
+    "parcel": 35,
+    "source": "https://www.tiktok.com/@paisde.seguidores/video/7704811569359768865"
+  },
+  {
+    "id": "P07",
+    "author": "7.62x51mm1",
+    "title": "Castillo rojo en B, con su autoría",
+    "group": "Grandes proyectos",
+    "status": "Propuesta pendiente",
+    "nextStep": "Presentar diseño y ubicación para aprobación",
+    "parcel": 10,
+    "source": "https://www.tiktok.com/@paisde.seguidores/video/7704811569359768865"
+  },
+  {
+    "id": "P08",
+    "author": "7.62x51mm1",
+    "title": "Rol de pescador",
+    "group": "Oficios",
+    "status": "Propuesta pendiente",
+    "nextStep": "Vincular el oficio al futuro muelle si se aprueba",
+    "parcel": 10,
+    "source": "https://www.tiktok.com/@paisde.seguidores/video/7705432878263373078"
+  },
+  {
+    "id": "P09",
+    "author": "starlighthonchozzz",
+    "title": "Casa costera con plantas frutales",
+    "group": "Viviendas",
+    "status": "Propuesta pendiente",
+    "nextStep": "Presentar diseño y ubicación para aprobación",
+    "parcel": 7,
+    "source": "https://www.tiktok.com/@paisde.seguidores/video/7705199681772506390"
+  },
+  {
+    "id": "P10",
+    "author": "starlighthonchozzz",
+    "title": "Lugar de pesca y cuidado de vacas",
+    "group": "Alimentación",
+    "status": "Propuesta pendiente",
+    "nextStep": "Presentar diseño y ubicación para aprobación",
+    "parcel": 7,
+    "source": "https://www.tiktok.com/@paisde.seguidores/video/7705432878263373078"
+  },
+  {
+    "id": "P11",
+    "author": "starlighthonchozzz",
+    "title": "Preferencia por el número 21",
+    "group": "Ubicación",
+    "status": "Requiere aclaración",
+    "nextStep": "F-0021 pertenece a @pablo; proponer una dirección sin trasladar a nadie",
+    "parcel": 7,
+    "source": "https://www.tiktok.com/@paisde.seguidores/video/7705063582198762774"
+  },
+  {
+    "id": "P12",
+    "author": "juliomaciaas",
+    "title": "Mansión con palmeras",
+    "group": "Viviendas",
+    "status": "Propuesta pendiente",
+    "nextStep": "Presentar diseño y ubicación para aprobación",
+    "parcel": 61,
+    "source": "https://www.tiktok.com/@paisde.seguidores/video/7705199681772506390"
+  },
+  {
+    "id": "P13",
+    "author": "rastodixyt",
+    "title": "Ser vendedor de casas",
+    "group": "Oficios",
+    "status": "Propuesta pendiente",
+    "nextStep": "Proponer oficio narrativo; no concede control sobre parcelas ajenas",
+    "parcel": 62,
+    "source": "https://www.tiktok.com/@paisde.seguidores/video/7705199681772506390"
+  },
+  {
+    "id": "P14",
+    "author": "laurel_364",
+    "title": "Tienda rosa de temática KATSEYE",
+    "group": "Comercio",
+    "status": "Propuesta pendiente",
+    "nextStep": "Presentar diseño y ubicación para aprobación",
+    "parcel": 67,
+    "source": "https://www.tiktok.com/@paisde.seguidores/video/7705432878263373078"
+  },
+  {
+    "id": "P15",
+    "author": ".cyberfile",
+    "title": "Barco naval",
+    "group": "Grandes proyectos",
+    "status": "Propuesta pendiente",
+    "nextStep": "Presentar diseño y ubicación para aprobación",
+    "parcel": 63,
+    "source": "https://www.tiktok.com/@paisde.seguidores/video/7705432878263373078"
+  },
+  {
+    "id": "P16",
+    "author": "jhokal12",
+    "title": "Casa en la playa",
+    "group": "Viviendas",
+    "status": "Propuesta pendiente",
+    "nextStep": "Presentar diseño y ubicación para aprobación",
+    "parcel": 66,
+    "source": "https://www.tiktok.com/@paisde.seguidores/video/7705432878263373078"
+  },
+  {
+    "id": "P17",
+    "author": "duolingo.el.pro.x",
+    "title": "Casa grande, granja y gallinas",
+    "group": "Alimentación",
+    "status": "Propuesta pendiente",
+    "nextStep": "Presentar diseño y ubicación para aprobación",
+    "parcel": 60,
+    "source": "https://www.tiktok.com/@paisde.seguidores/video/7705432878263373078"
+  },
+  {
+    "id": "P18",
+    "author": "polloconpollo512",
+    "title": "Corral de ciervos, conejos y otros animales",
+    "group": "Animales",
+    "status": "Propuesta pendiente",
+    "nextStep": "Presentar diseño y ubicación para aprobación",
+    "parcel": 50,
+    "source": "https://www.tiktok.com/@paisde.seguidores/video/7705432878263373078"
+  },
+  {
+    "id": "P19",
+    "author": "polloconpollo512",
+    "title": "Reproducción de animales y recursos",
+    "group": "Por diseñar",
+    "status": "Por diseñar",
+    "nextStep": "Diseñar la mecánica antes de presentarla como jugable",
+    "parcel": 50,
+    "source": "https://www.tiktok.com/@paisde.seguidores/video/7705432878263373078"
+  },
+  {
+    "id": "P20",
+    "author": "polloconpollo512",
+    "title": "Montura para el tricerátops",
+    "group": "Animales",
+    "status": "Por diseñar",
+    "nextStep": "Proponer diseño y comportamiento por separado",
+    "parcel": 50,
+    "source": "https://www.tiktok.com/@paisde.seguidores/video/7705432878263373078"
+  },
+  {
+    "id": "P21",
+    "author": "astra.065",
+    "title": "Trabajar en un supermercado",
+    "group": "Comercio",
+    "status": "Propuesta pendiente",
+    "nextStep": "Presentar diseño y ubicación para aprobación",
+    "parcel": 64,
+    "source": "https://www.tiktok.com/@paisde.seguidores/video/7705432878263373078"
+  },
+  {
+    "id": "P22",
+    "author": "doni.scot2",
+    "title": "Escuela de artes marciales / BJJ",
+    "group": "Oficios",
+    "status": "Propuesta pendiente",
+    "nextStep": "Presentar diseño y ubicación para aprobación",
+    "parcel": 70,
+    "source": "https://www.tiktok.com/@paisde.seguidores/video/7705199681772506390"
+  },
+  {
+    "id": "P23",
+    "author": "guayotadiaz",
+    "title": "Profesor y espacio de yoga",
+    "group": "Oficios",
+    "status": "Propuesta pendiente",
+    "nextStep": "Presentar diseño y ubicación para aprobación",
+    "parcel": 71,
+    "source": "https://www.tiktok.com/@paisde.seguidores/video/7705199681772506390"
+  },
+  {
+    "id": "P24",
+    "author": "mrazulito2",
+    "title": "Parque de atracciones azul★land",
+    "group": "Grandes proyectos",
+    "status": "Propuesta pendiente",
+    "nextStep": "Presentar diseño y ubicación para aprobación",
+    "parcel": 73,
+    "source": "https://www.tiktok.com/@paisde.seguidores/video/7705432878263373078"
+  },
+  {
+    "id": "P25",
+    "author": "sin__foto",
+    "title": "Casa roja, varios pisos y campo",
+    "group": "Viviendas",
+    "status": "Requiere aclaración",
+    "nextStep": "Confirmar los tres pisos y presentar diseño sin desplazar vecinos",
+    "parcel": 74,
+    "source": "https://www.tiktok.com/@paisde.seguidores/video/7705432878263373078"
+  },
+  {
+    "id": "P26",
+    "author": "sin__foto",
+    "title": "Propuesta de ser presidente",
+    "group": "Reglas del país",
+    "status": "Decisión colectiva",
+    "nextStep": "Definir gobierno mediante una decisión común; no asignar un cargo automáticamente",
+    "parcel": 74,
+    "source": "https://www.tiktok.com/@paisde.seguidores/video/7705432878263373078"
+  },
+  {
+    "id": "P27",
+    "author": "taza_de_cafe15",
+    "title": "Casa de dos pisos con referencia",
+    "group": "Viviendas",
+    "status": "Propuesta pendiente",
+    "nextStep": "Presentar diseño y ubicación para aprobación",
+    "parcel": 4,
+    "source": "https://www.tiktok.com/@paisde.seguidores/video/7705432878263373078"
+  },
+  {
+    "id": "P28",
+    "author": "taza_de_cafe15",
+    "title": "Puerto, tecnología, recursos y herramientas",
+    "group": "Reglas del país",
+    "status": "Por diseñar",
+    "nextStep": "Plantear etapas y nivel tecnológico de la nación",
+    "parcel": 4,
+    "source": "https://www.tiktok.com/@paisde.seguidores/video/7704811569359768865"
+  },
+  {
+    "id": "P29",
+    "author": "taza_de_cafe15",
+    "title": "Gobierno, moneda, bandera, alianzas y exploración",
+    "group": "Reglas del país",
+    "status": "Decisión colectiva",
+    "nextStep": "Resolver cada regla en su propia propuesta y votación",
+    "parcel": 4,
+    "source": "https://www.tiktok.com/@paisde.seguidores/video/7704811569359768865"
+  },
+  {
+    "id": "P30",
+    "author": "franciscoanime11",
+    "title": "Alias Lancelot y muñeco rojo",
+    "group": "Personaje",
+    "status": "Aplicado",
+    "nextStep": "Alias y avatar rojo verificados en F-0027",
+    "parcel": 27,
+    "source": "https://www.tiktok.com/@paisde.seguidores/video/7705063582198762774"
+  },
+  {
+    "id": "P31",
+    "author": "franciscoanime11",
+    "title": "Central de defensa y ejército ficticio",
+    "group": "Grandes proyectos",
+    "status": "Propuesta pendiente",
+    "nextStep": "Presentar diseño y ubicación para aprobación",
+    "parcel": 27,
+    "source": "https://www.tiktok.com/@paisde.seguidores/video/7705432878263373078"
+  },
+  {
+    "id": "P32",
+    "author": "franciscoanime11",
+    "title": "Posible duplicidad de identidad",
+    "group": "Personaje",
+    "status": "Requiere aclaración",
+    "nextStep": "Conservar los registros hasta verificar la identidad; no fusionar con otro @",
+    "parcel": 27,
+    "source": "https://www.tiktok.com/@paisde.seguidores/video/7705432878263373078"
+  },
+  {
+    "id": "P33",
+    "author": "elmickimaus",
+    "title": "Ampliar tierra en B",
+    "group": "Ubicación",
+    "status": "Propuesta pendiente",
+    "nextStep": "Presentar diseño y ubicación para aprobación",
+    "parcel": 20,
+    "source": "https://www.tiktok.com/@paisde.seguidores/video/7704811569359768865"
+  },
+  {
+    "id": "P34",
+    "author": "pepesin.421",
+    "title": "Preferencia por una zona D",
+    "group": "Ubicación",
+    "status": "Requiere propuesta",
+    "nextStep": "Presentar un barrio adicional antes de alterar los distritos",
+    "parcel": 48,
+    "source": "https://www.tiktok.com/@paisde.seguidores/video/7704811569359768865"
+  },
+  {
+    "id": "P35",
+    "author": "espaguetti78",
+    "title": "Vivir en A junto al agua para suministros y pesca",
+    "group": "Ubicación",
+    "status": "Propuesta pendiente",
+    "nextStep": "Presentar diseño y ubicación para aprobación",
+    "parcel": 23,
+    "source": "https://www.tiktok.com/@paisde.seguidores/video/7704811569359768865"
+  },
+  {
+    "id": "P36",
+    "author": "the_night7879dominguez",
+    "title": "Abastecer de agua al valle para los cultivos",
+    "group": "Alimentación",
+    "status": "Propuesta pendiente",
+    "nextStep": "Presentar diseño y ubicación para aprobación",
+    "parcel": 55,
+    "source": "https://www.tiktok.com/@paisde.seguidores/video/7704811569359768865"
+  },
+  {
+    "id": "P37",
+    "author": "liamxd53",
+    "title": "Preferencia por vivir en B",
+    "group": "Ubicación",
+    "status": "Pendiente de ubicación",
+    "nextStep": "Respetar su parcela actual hasta aprobar un traslado",
+    "parcel": 37,
+    "source": "https://www.tiktok.com/@paisde.seguidores/video/7704811569359768865"
+  },
+  {
+    "id": "P38",
+    "author": "nachatora",
+    "title": "Preferencia por construir en B",
+    "group": "Ubicación",
+    "status": "Preferencia registrada",
+    "nextStep": "Concretar qué obra propone antes de construir",
+    "parcel": 45,
+    "source": "https://www.tiktok.com/@paisde.seguidores/video/7704811569359768865"
+  },
+  {
+    "id": "P39",
+    "author": "maura.lyng.mejia",
+    "title": "Preferencias ambiguas de norte/sur",
+    "group": "Ubicación",
+    "status": "Requiere aclaración",
+    "nextStep": "Confirmar el lugar solicitado antes de cualquier traslado",
+    "parcel": 43,
+    "source": "https://www.tiktok.com/@paisde.seguidores/video/7705432878263373078"
+  },
+  {
+    "id": "P40",
+    "author": "augusto.alejandro29",
+    "title": "Propuesta narrativa de una mina",
+    "group": "Grandes proyectos",
+    "status": "Propuesta pendiente",
+    "nextStep": "Presentarla como proyecto o ficción; no anunciar un hallazgo real inventado",
+    "parcel": 76,
+    "source": "https://www.tiktok.com/@paisde.seguidores/video/7705432878263373078"
+  },
+  {
+    "id": "P41",
+    "author": "alvaromartines07",
+    "title": "Bandera de la propuesta República de Noveria",
+    "group": "Bandera",
+    "status": "Pendiente de elección",
+    "nextStep": "Conservar la imagen con su autoría; Hispania es el nombre ya decidido",
+    "parcel": 12,
+    "source": "https://www.tiktok.com/@paisde.seguidores/video/7704811569359768865"
+  },
+  {
+    "id": "P42",
+    "author": "alancito1366",
+    "title": "Bandera enviada por el usuario",
+    "group": "Bandera",
+    "status": "Pendiente de elección",
+    "nextStep": "Mostrar su diseño en una futura elección de bandera",
+    "parcel": 11,
+    "source": "https://www.tiktok.com/@paisde.seguidores/video/7704811569359768865"
+  },
+  {
+    "id": "P43",
+    "author": "gato123451234512345",
+    "title": "Bandera enviada en imagen",
+    "group": "Bandera",
+    "status": "Pendiente de elección",
+    "nextStep": "Referencia visual ya leída; preparar galería de banderas con autoría",
+    "parcel": 30,
+    "source": "https://www.tiktok.com/@paisde.seguidores/video/7705199681772506390"
+  },
+  {
+    "id": "P44",
+    "author": "espantaabuelitas4000",
+    "title": "Diseño de bandera y propuesta de nombre en imagen",
+    "group": "Bandera",
+    "status": "Pendiente de elección",
+    "nextStep": "La bandera continúa como propuesta; el nombre del país ya está decidido",
+    "parcel": 24,
+    "source": "https://www.tiktok.com/@paisde.seguidores/video/7704811569359768865"
+  },
+  {
+    "id": "P45",
+    "author": "pepesin.421",
+    "title": "Enlace sencillo para acceder al mapa",
+    "group": "Acceso",
+    "status": "Atendido en contenido",
+    "nextStep": "La dirección se muestra en la web y en el vídeo",
+    "parcel": 48,
+    "source": "https://www.tiktok.com/@paisde.seguidores/video/7704811569359768865"
+  }
+]

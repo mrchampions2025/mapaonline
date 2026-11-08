@@ -5,7 +5,7 @@ export const NATION = {
   capital: "Bahía del Sol",
   capitalOption: "A",
   capitalPollPercent: 70,
-  communityGoal: 100,
+  communityGoal: 500,
 } as const;
 
 // Approved first common building. No resident is moved or given extra parcels.

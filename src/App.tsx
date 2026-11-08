@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { Atlas } from "./components/Atlas.tsx";
 import { Membership } from "./components/Membership.tsx";
+import { CommunityRequests } from "./components/CommunityRequests.tsx";
 import * as api from "./lib/api.ts";
 import {
   AVATARS,
@@ -496,8 +497,8 @@ export function App() {
             <div className="community-goal">
               <span className="eyebrow">NUESTRA PRÓXIMA META</span>
               <p><strong>{connected ? total : "—"}</strong> / {NATION.communityGoal} vecinos</p>
-              <progress value={connected ? Math.min(total,NATION.communityGoal) : 0} max={NATION.communityGoal} aria-label="Progreso hacia cien vecinos" />
-              <small>{connected && total >= NATION.communityGoal ? "¡Meta alcanzada! Seguimos construyendo juntos." : connected ? `Faltan ${Math.max(0,NATION.communityGoal-total)} para llegar a cien. Invita a tu futuro vecino.` : "Conectando con el mapa."} Las parcelas siguen abiertas.</small>
+              <progress value={connected ? Math.min(total,NATION.communityGoal) : 0} max={NATION.communityGoal} aria-label={`Progreso hacia ${NATION.communityGoal} vecinos`} />
+              <small>{connected && total >= NATION.communityGoal ? "¡Meta alcanzada! Seguimos construyendo juntos." : connected ? `Faltan ${Math.max(0,NATION.communityGoal-total)} para llegar a ${NATION.communityGoal}. Invita a tu futuro vecino.` : "Conectando con el mapa."} Las parcelas siguen abiertas.</small>
             </div>
           </section>
           {mapTruncated && (
@@ -532,7 +533,7 @@ export function App() {
           <section className="community-directory" aria-label="Vecinos de la comunidad">
             <p className="eyebrow">LA COMUNIDAD YA TIENE NOMBRES</p>
             <h2>Encuentra a tus vecinos.</h2>
-            <p className="muted">Quienes se apuntan en la web y quienes participan en los comentarios comparten este mapa. Pulsa un nick para ver su muñeco y su parcela.</p>
+            <p className="muted">Quienes se apuntan en la web y quienes incorporamos desde TikTok comparten este mapa. Pulsa un nick para ver su muñeco y su parcela.</p>
             <ul>
               {directory.map((r) => (
                 <li key={r.id}>
@@ -550,6 +551,7 @@ export function App() {
               setDirectoryMore(more.length === 100);
             })}>Ver más vecinos</button>}
           </section>
+          <CommunityRequests />
           <div className="below-map">
             <section>
               <p className="eyebrow">UN SITIO QUE ES TUYO</p>
