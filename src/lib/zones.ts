@@ -36,10 +36,13 @@ export function drawCapitalZones(
     const label = `${zone.id === "A" ? "CAPITAL" : "ZONA B"} · ${zone.name.toLocaleUpperCase("es")}`;
     ctx.font = "600 10px system-ui";
     const w = ctx.measureText(label).width + 20;
+    const labelX = Math.max(8, Math.min(width - w - 8, p.x + 24));
     ctx.fillStyle = "#071d2cf2";
-    ctx.fillRect(p.x - w / 2, p.y + 13, w, 24);
+    ctx.fillRect(labelX, p.y - 48, w, 24);
     ctx.fillStyle = zone.color;
-    ctx.fillText(label, p.x, p.y + 29);
+    ctx.textAlign = "left";
+    ctx.fillText(label, labelX + 10, p.y - 32);
+    ctx.textAlign = "center";
   }
   ctx.restore();
 }

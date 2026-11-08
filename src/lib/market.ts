@@ -14,7 +14,7 @@ export function drawMarket(
   ctx.fillStyle = "#d5bc85";
   ctx.beginPath();ctx.moveTo(-39,-4);ctx.lineTo(-7,-16);ctx.lineTo(39,-3);ctx.lineTo(7,13);ctx.closePath();ctx.fill();
   ctx.fillStyle = "#6c442a";
-  for (const px of [-29,29]) ctx.fillRect(px-1.4,-52,2.8,51);
+  for (const px of [-29,29]) ctx.fillRect(px-1.4,-70,2.8,69);
   ctx.fillStyle = "#e8ce9f";ctx.fillRect(-28,-22,56,25);
   ctx.fillStyle = "#be4f35";ctx.fillRect(-27,-19,54,21);
   ctx.fillStyle = "#943d2e";ctx.beginPath();ctx.moveTo(27,-19);ctx.lineTo(34,-23);ctx.lineTo(34,-3);ctx.lineTo(27,2);ctx.closePath();ctx.fill();
@@ -29,10 +29,10 @@ export function drawMarket(
   // Striped awning is separate from both animated characters.
   for(let i=0;i<10;i++){
     ctx.fillStyle=i%2?"#df775b":"#fff0ce";
-    ctx.beginPath();ctx.moveTo(-35+i*7,-60);ctx.lineTo(-28+i*7,-60);ctx.lineTo(-25+i*7,-48);ctx.lineTo(-32+i*7,-48);ctx.closePath();ctx.fill();
+    ctx.beginPath();ctx.moveTo(-35+i*7,-78);ctx.lineTo(-28+i*7,-78);ctx.lineTo(-25+i*7,-66);ctx.lineTo(-32+i*7,-66);ctx.closePath();ctx.fill();
   }
-  ctx.fillStyle="#082b38";ctx.fillRect(-32,-48,70,10);
-  ctx.font="bold 7px system-ui";ctx.textAlign="center";ctx.fillStyle="#ffc466";ctx.fillText("PATATAS",3,-40.8);
+  ctx.fillStyle="#082b38";ctx.fillRect(-32,-66,70,10);
+  ctx.font="bold 7px system-ui";ctx.textAlign="center";ctx.fillStyle="#ffc466";ctx.fillText("PATATAS",3,-58.8);
   ctx.font="bold 6px system-ui";ctx.fillStyle="#fff5de";ctx.fillText("@maravaf",0,-6);
   capybara(ctx,-33,8,.65,time+.8,false);
   ctx.strokeStyle="#fff8dc70";ctx.lineWidth=.8;
