@@ -275,7 +275,7 @@ export function Membership({
                   );
                 const existing = await api.search(normalized);
                 if (existing?.origin === "comment") {
-                  setNotice("¡Ya apareces por participar en los comentarios! Hemos localizado tu personaje. Escribir el nick permite verlo; la gestión de esta entrada requiere verificar la cuenta de TikTok.");
+                  setNotice("¡Tu nick ya aparece en el mapa desde TikTok! Hemos localizado tu personaje. Escribir el nick permite verlo; la gestión de esta entrada requiere verificar la cuenta de TikTok.");
                   onLocate(existing);
                   return;
                 }

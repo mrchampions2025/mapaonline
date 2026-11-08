@@ -11,6 +11,7 @@ import {
 } from "./lib/world.ts";
 import type { Bounds, District, Resident, WorldObject } from "./lib/types.ts";
 import { FIRST_MARKET, NATION } from "./lib/nation.ts";
+import { TIKTOK_AUDIENCE } from "./lib/community.ts";
 const emptyDistricts: District[] = DISTRICT_NAMES.map((name, i) => ({
   id: i + 1,
   name,
@@ -477,6 +478,11 @@ export function App() {
             onBounds={loadBounds}
           />
           <section className="nation-news" aria-label="Lo que está pasando en Hispania">
+            <div className="community-counts">
+              <span className="eyebrow">NUESTRA COMUNIDAD SIGUE CRECIENDO</span>
+              <p><strong>{TIKTOK_AUDIENCE.followers}</strong> seguidores en TikTok · <strong>{connected ? total : "—"}</strong> vecinos con parcela</p>
+              <small>Seguidores: lectura del {TIKTOK_AUDIENCE.checkedLabel}. El mapa cuenta los nicks incorporados desde TikTok y los registros de la web. Son dos cifras distintas; no se suman.</small>
+            </div>
             <div className="nation-result"><span className="eyebrow">VOTACIÓN FINALIZADA</span>
               <p><strong>{NATION.name}</strong> ya tiene capital: <strong>{NATION.capital}</strong>.</p>
               <small>Nombre elegido entre vuestros comentarios · Capital: opción A, {NATION.capitalPollPercent} % en la encuesta comunicada por el creador.</small>
@@ -510,7 +516,7 @@ export function App() {
                 <strong>@{selected.nick}</strong>
                 <span>
                   Parcela F-{String(selected.parcel_id).padStart(4, "0")} ·
-                  {selected.origin === "comment" ? " Añadido por comentar" : " Registro desde la web"}
+                  {selected.origin === "comment" ? " Añadido desde TikTok" : " Registro desde la web"}
                   {selected.alias ? ` · ${selected.alias}` : ""}
                 </span>
               </div>
@@ -532,7 +538,7 @@ export function App() {
                 <li key={r.id}>
                   <button onClick={() => showMyPlace(r)}>
                     <span className="avatar-dot" style={{background: AVATARS[r.avatar].color}} />
-                    <span><strong>@{r.nick}</strong><small>F-{String(r.parcel_id).padStart(4,"0")} · {r.origin === "comment" ? "Desde comentarios" : "Desde la web"}</small></span>
+                    <span><strong>@{r.nick}</strong><small>F-{String(r.parcel_id).padStart(4,"0")} · {r.origin === "comment" ? "Desde TikTok" : "Desde la web"}</small></span>
                     <span aria-hidden="true">↗</span>
                   </button>
                 </li>
