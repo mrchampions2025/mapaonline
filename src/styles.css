@@ -824,3 +824,14 @@ footer a {
 .community-directory li button > span:nth-child(2) { flex: 1; min-width: 0; }
 .community-directory strong { display: block; font-size: 13px; overflow-wrap: anywhere; }
 .community-directory small { display: block; margin-top: 5px; font-size: 10px; color: #a6bdc5; }
+.zone-navigation .market-jump { flex: 1 1 100%; border-color: #9a7c46; background: #163438; }
+.nation-news { display: grid; gap: 14px; margin: 20px 0 28px; }
+.nation-news > * { border: 1px solid var(--line); border-radius: 16px; padding: 22px; background: #0a2836; }
+.nation-news p { line-height: 1.6; margin: 10px 0; }
+.nation-news small { color: #a6bdc5; line-height: 1.6; display: block; }
+.nation-news .eyebrow { color: var(--mint); font-size: 11px; }
+.nation-news h2 { margin: 10px 0; font-size: 25px; }
+.first-business { border-color: #8b744a !important; }
+.community-goal p { font-size: 23px; }
+.community-goal strong { color: var(--gold); }
+.community-goal progress { display: block; width: 100%; height: 13px; accent-color: var(--mint); margin: 14px 0; }

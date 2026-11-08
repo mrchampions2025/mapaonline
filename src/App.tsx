@@ -10,6 +10,7 @@ import {
   normalizeNick,
 } from "./lib/world.ts";
 import type { Bounds, District, Resident, WorldObject } from "./lib/types.ts";
+import { FIRST_MARKET, NATION } from "./lib/nation.ts";
 const emptyDistricts: District[] = DISTRICT_NAMES.map((name, i) => ({
   id: i + 1,
   name,
@@ -183,16 +184,16 @@ export function App() {
   return (
     <>
       <header className="header">
-        <a href="/" className="brand" aria-label="Nación Cero, inicio">
-          <span className="logo">N</span>
+        <a href="/" className="brand" aria-label={`${NATION.name}, inicio`}>
+          <span className="logo">H</span>
           <span>
-            <b>NACIÓN CERO</b>
-            <small>EL ATLAS DE LOS FUNDADORES</small>
+            <b>{NATION.name.toLocaleUpperCase("es")}</b>
+            <small>EL PAÍS DE LOS SEGUIDORES</small>
           </span>
         </a>
         <nav>
-          <a href={api.tiktokUrl} target="_blank" rel="noreferrer">
-            La historia en TikTok <span>↗</span>
+          <a href={api.tiktokUrl} target="_blank" rel="noopener noreferrer">
+            TikTok oficial <span>↗</span>
           </a>
           <button
             className="header-join"
@@ -428,12 +429,12 @@ export function App() {
                 UN PERSONAJE. UNA PARCELA. UNA HISTORIA.
               </p>
               <h1>
-                Llegaste antes
+                Tu historia empieza
                 <br />
-                que <em>la capital.</em>
+                en <em>{NATION.name}.</em>
               </h1>
               <p className="lead">
-                Este país lo construimos entre todos.
+                Nuestra capital es {NATION.capital}.
                 <br />
                 Encuentra tu lugar y deja tu nick en el mapa.
               </p>
@@ -475,6 +476,24 @@ export function App() {
             onPoint={(x, y) => setPoint({ x, y })}
             onBounds={loadBounds}
           />
+          <section className="nation-news" aria-label="Lo que está pasando en Hispania">
+            <div className="nation-result"><span className="eyebrow">VOTACIÓN FINALIZADA</span>
+              <p><strong>{NATION.name}</strong> ya tiene capital: <strong>{NATION.capital}</strong>.</p>
+              <small>Nombre elegido entre vuestros comentarios · Capital: opción A, {NATION.capitalPollPercent} % en la encuesta comunicada por el creador.</small>
+            </div>
+            {objects.some((o) => o.id === FIRST_MARKET.id) && <article className="first-business">
+              <span className="eyebrow">PRIMER NEGOCIO DEL MAPA · CONSTRUIDO</span>
+              <h2>Patatas de @maravaf.</h2>
+              <p>Un comentario se convirtió en este puesto de la capital. Sus capibaras ya te esperan en el mapa.</p>
+              <small>Espacio común de {NATION.capital} · Idea de @maravaf. Tu parcela conserva su lugar.</small>
+            </article>}
+            <div className="community-goal">
+              <span className="eyebrow">NUESTRA PRÓXIMA META</span>
+              <p><strong>{connected ? total : "—"}</strong> / {NATION.communityGoal} vecinos</p>
+              <progress value={connected ? Math.min(total,NATION.communityGoal) : 0} max={NATION.communityGoal} aria-label="Progreso hacia cien vecinos" />
+              <small>{connected && total >= NATION.communityGoal ? "¡Meta alcanzada! Seguimos construyendo juntos." : connected ? `Faltan ${Math.max(0,NATION.communityGoal-total)} para llegar a cien. Invita a tu futuro vecino.` : "Conectando con el mapa."} Las parcelas siguen abiertas.</small>
+            </div>
+          </section>
           {mapTruncated && (
             <p className="muted">
               Esta zona tiene muchos vecinos. Acércate más para verlos con
@@ -561,7 +580,7 @@ export function App() {
       </div>
       <footer id="reglas">
         <div className="footer-brand">
-          NACIÓN CERO <span>Un país hecho por su gente.</span>
+          {NATION.name.toLocaleUpperCase("es")} <span>Un país hecho por su gente.</span>
         </div>
         <p>
           Parcelas simbólicas, sin propiedad ni valor económico. El nick es

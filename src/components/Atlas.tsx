@@ -4,6 +4,8 @@ import { drawWildlife } from "../lib/wildlife.ts";
 import type { AnimalName, AnimalSprites } from "../lib/fauna_atlas.ts";
 import { AVATARS, parcelPosition } from "../lib/world.ts";
 import { CAPITAL_ZONES, drawCapitalZones } from "../lib/zones.ts";
+import { FIRST_MARKET, NATION } from "../lib/nation.ts";
+import { drawMarket } from "../lib/market.ts";
 type Props = {
   districts: District[];
   residents: Resident[];
@@ -63,6 +65,7 @@ export function Atlas(props: Props) {
   const activeZone = CAPITAL_ZONES.find(
     (z) => cam.zoom >= 2 && Math.hypot(cam.x - z.x, cam.y - z.y) < 2,
   );
+  const market = props.objects.find((o) => o.id === FIRST_MARKET.id);
   function screen(x: number, y: number) {
     return {
       x: (x - cam.x) * scale + size.w / 2,
@@ -155,8 +158,12 @@ export function Atlas(props: Props) {
       );
       for (const obj of props.objects) {
         const p = screen(obj.x, obj.y);
-        if (p.x < -50 || p.x > size.w + 50 || p.y < -50 || p.y > size.h + 50)
+        if (p.x < -200 || p.x > size.w + 200 || p.y < -200 || p.y > size.h + 200)
           continue;
+        if (obj.id === FIRST_MARKET.id) {
+          drawMarket(ctx,p.x,p.y,scale,reducedMotion.matches ? 0 : now / 1000);
+          continue;
+        }
         const s = Math.max(6, 15 * scale);
         ctx.save();
         ctx.translate(p.x, p.y);
@@ -334,16 +341,19 @@ export function Atlas(props: Props) {
         <button key={zone.id} aria-pressed={activeZone?.id === zone.id}
           onClick={() => setCam({ x: zone.x, y: zone.y, zoom: 3.5 })}>
           <b style={{ color: zone.color }}>{zone.id}</b>
-          <span>Zona {zone.id} · {zone.name}</span>
+          <span>{zone.id === "A" ? "Capital" : `Zona ${zone.id}`} · {zone.name}</span>
           <span aria-hidden="true">↗</span>
         </button>
       ))}
+      {market && <button className="market-jump" onClick={() => setCam({x:market.x,y:market.y-18,zoom:5.5})}>
+        <b>🥔</b><span>Ver Patatas de @maravaf</span><span aria-hidden="true">↗</span>
+      </button>}
     </nav>
     <div className={"atlas " + (props.editing ? "editing" : "")} ref={box}>
       <canvas
         ref={canvas}
         tabIndex={0}
-        aria-label="Mapa de Nación Cero. Arrastra para explorar. Usa los controles para acercarte y la búsqueda para encontrar habitantes."
+        aria-label={`Mapa de ${NATION.name}. Arrastra para explorar. Usa los controles para acercarte y la búsqueda para encontrar habitantes.`}
         onKeyDown={(e) => {
           const directions: Record<string, [number, number]> = {
             ArrowLeft: [-70, 0],

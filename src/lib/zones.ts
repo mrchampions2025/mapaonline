@@ -33,7 +33,7 @@ export function drawCapitalZones(
     ctx.fillStyle = "#071d2c";
     ctx.font = "bold 17px system-ui";
     ctx.fillText(zone.id, p.x, p.y - 30);
-    const label = `ZONA ${zone.id} · ${zone.name.toLocaleUpperCase("es")}`;
+    const label = `${zone.id === "A" ? "CAPITAL" : "ZONA B"} · ${zone.name.toLocaleUpperCase("es")}`;
     ctx.font = "600 10px system-ui";
     const w = ctx.measureText(label).width + 20;
     ctx.fillStyle = "#071d2cf2";
