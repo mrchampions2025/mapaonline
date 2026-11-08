@@ -161,7 +161,6 @@ export function Atlas(props: Props) {
         if (p.x < -200 || p.x > size.w + 200 || p.y < -200 || p.y > size.h + 200)
           continue;
         if (obj.id === FIRST_MARKET.id) {
-          drawMarket(ctx,p.x,p.y,scale,reducedMotion.matches ? 0 : now / 1000);
           continue;
         }
         const s = Math.max(6, 15 * scale);
@@ -309,6 +308,12 @@ export function Atlas(props: Props) {
             ctx.fillText(label, s.x, labelTop + 17);
           }
         }
+      }
+      if (market) {
+        const p = screen(market.x, market.y);
+        if (p.x > -100 * scale && p.x < size.w + 100 * scale &&
+            p.y > -100 * scale && p.y < size.h + 100 * scale)
+          drawMarket(ctx,p.x,p.y,scale,reducedMotion.matches ? 0 : now / 1000);
       }
       drawCapitalZones(ctx, screen, size.w, size.h);
     }
