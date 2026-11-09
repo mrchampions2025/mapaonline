@@ -879,3 +879,4 @@ footer a {
 @media(max-height:600px){.playing .game-search{display:none}.activity-sheet{max-height:42dvh;padding:8px 12px}.activity-tabs button{min-height:44px}.activity-heading h2{font-size:16px}.activity-sheet .session-note{display:none}.game-resident{top:110px}}
 .ship-helm{display:flex;gap:8px;align-items:center;margin-top:10px}.ship-helm button{flex:1;min-height:44px;border:1px solid #426b72;background:#123943;color:#fff;border-radius:10px}.ship-helm span{font-size:11px;color:#9bc8c5}
 @media(max-width:360px){.activity-sheet{padding:10px 12px}.activity-heading h2{font-size:17px}.activity-sheet .session-note{display:none}.wood-pile{margin:8px 0}.wood-pile button{min-height:58px}.delivery-progress{margin:6px 0}.game-topbar button{font-size:12px}}
+.atlas.activity-open .map-dpad{display:none}@media(max-width:360px){.activity-sheet{max-height:45dvh}}

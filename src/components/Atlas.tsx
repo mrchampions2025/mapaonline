@@ -79,7 +79,7 @@ export function Atlas(props: Props) {
   const fit = Math.min(size.w / 1450, size.h / 850),
     scale = fit * cam.zoom;
   const centerY =
-    props.gameMode && props.activityOpen ? size.h * 0.28 : size.h / 2;
+    props.gameMode && props.activityOpen ? size.h * (size.w <= 360 ? 0.19 : 0.28) : size.h / 2;
   const activeZone = CAPITAL_ZONES.find(
     (z) => cam.zoom >= 2 && Math.hypot(cam.x - z.x, cam.y - z.y) < 2,
   );
@@ -424,7 +424,7 @@ export function Atlas(props: Props) {
           </button>
         )}
       </nav>
-      <div className={"atlas " + (props.editing ? "editing" : "")} ref={box}>
+      <div className={"atlas " + (props.editing ? "editing " : "") + (props.activityOpen ? "activity-open" : "")} ref={box}>
         <canvas
           ref={canvas}
           tabIndex={0}
