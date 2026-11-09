@@ -1,26 +1,37 @@
-import { HARBOR } from "../lib/harbor.ts";
-import { IDLE, TREES, VOYAGE_MS, type PlayerAction } from "../lib/player.ts";
 import { useEffect, useRef, useState } from "react";
-import { finishWork, startWork, type HarborStatus } from "../lib/harbor.ts";
+import {
+  HARBOR,
+  FOREST,
+  finishWork,
+  startWork,
+  type HarborStatus,
+} from "../lib/harbor.ts";
+import { IDLE, TREES, type PlayerAction } from "../lib/player.ts";
+import {
+  HIDDEN_ANIMALS,
+  boardBoat,
+  leaveBoat,
+  landingPoint,
+  walkTo,
+  stepAdventure,
+  saveAdventure,
+  type Adventure,
+} from "../lib/adventure.ts";
+import { walkingPath, distance } from "../lib/navigation.ts";
 import { friendlyError } from "../lib/api.ts";
-export type Activity = "explore" | "wood" | "ship" | "dock";
+export type Activity = "explore" | "wood" | "ship" | "dock" | "wildlife";
 type Props = {
   activity: Activity;
   onActivity: (a: Activity) => void;
   status: HarborStatus | null;
   error: string;
   onStatus: (s: HarborStatus) => void;
-  onVoyage: (v: boolean) => void;
-  onVoyageStarted: (v: number) => void;
-  onAction: (v: PlayerAction) => void;
-  onSteer: (d: number) => void;
+  onAction: (a: PlayerAction) => void;
+  adventure: Adventure;
   nick?: string;
 };
 const CACHE = "hispania-wood-v2";
-function resumeWork(): {
-  work: { token: string; started_at: string } | null;
-  logs: number[];
-} {
+function resume() {
   try {
     const v = JSON.parse(sessionStorage.getItem(CACHE) || "null");
     if (
@@ -29,7 +40,7 @@ function resumeWork(): {
       Date.now() - Date.parse(v.work.started_at) < 1800000
     )
       return {
-        work: v.work,
+        work: v.work as { token: string; started_at: string },
         logs: Array.isArray(v.logs)
           ? [
               ...new Set<number>(
@@ -39,7 +50,7 @@ function resumeWork(): {
           : [],
       };
   } catch {
-    /* A blocked browser store must not prevent playing. */
+    /* Optional resume. */
   }
   return { work: null, logs: [] };
 }
@@ -49,124 +60,175 @@ export function HarborGame({
   status,
   error,
   onStatus,
-  onVoyage,
-  onVoyageStarted,
   onAction,
-  onSteer,
+  adventure: s,
   nick,
 }: Props) {
-  const [saved] = useState(resumeWork);
-  const [work, setWork] = useState<{
-    token: string;
-    started_at: string;
-  } | null>(saved.work);
-  const [logs, setLogs] = useState<number[]>(saved.logs),
+  const [saved] = useState(resume),
+    [work, setWork] = useState(saved.work),
+    [logs, setLogs] = useState<number[]>(saved.logs),
     [busy, setBusy] = useState(false),
     [notice, setNotice] = useState(""),
     [failure, setFailure] = useState(""),
-    [seconds, setSeconds] = useState(8),
-    [sailing, setSailing] = useState(false);
-  const position = useRef(IDLE.to);
-  const mounted = useRef(true);
-  const actionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [actionLabel, setActionLabel] = useState("");
-  const [tripSeconds, setTripSeconds] = useState(0);
-  const tripStart = useRef(0);
+    [actionLabel, setActionLabel] = useState("");
+  const [view, setView] = useState(() => snapshot());
+  const sheet = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    sheet.current?.scrollTo({ top: 0 });
+  }, [activity]);
   const lock = useRef(false),
-    tripTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    mounted = useRef(true),
+    timer = useRef<ReturnType<typeof setTimeout> | null>(null),
+    keys = useRef(new Set<string>()),
+    pressed = useRef(0);
+  function snapshot() {
+    return {
+      aboard: s.aboard,
+      nearBoat: distance(s.player, s.boat) <= 90,
+      canLand: !!landingPoint(s),
+      found: [...s.found],
+      pending: s.pending.size,
+      notice: s.notice,
+      error: s.error,
+    };
+  }
+  useEffect(() => {
+    const t = setInterval(() => setView(snapshot()), 200);
+    return () => clearInterval(t);
+  }, [s]);
   useEffect(() => {
     mounted.current = true;
     return () => {
       mounted.current = false;
-      if (actionTimer.current) clearTimeout(actionTimer.current);
-      if (tripTimer.current) clearTimeout(tripTimer.current);
-      onVoyage(false);
+      if (timer.current) clearTimeout(timer.current);
+      s.input = { x: 0, y: 0 };
+      s.path = null;
+      if (s.action.kind !== "idle")
+        onAction({ ...IDLE, from: s.player, to: s.player, logs: logs.length });
+      saveAdventure(s);
     };
-  }, [onVoyage]);
+  }, [s, onAction]);
   useEffect(() => {
     try {
       sessionStorage.setItem(CACHE, JSON.stringify({ work, logs }));
     } catch {
-      /* Optional local resume. */
+      /* Play without a browser store. */
     }
   }, [work, logs]);
   useEffect(() => {
-    onAction({ ...IDLE, logs: saved.logs.length, started: Date.now() });
-  }, [onAction, saved]);
+    onAction({
+      ...IDLE,
+      from: s.player,
+      to: s.player,
+      logs: saved.logs.length,
+    });
+  }, [s, onAction, saved]);
   useEffect(() => {
     if (!work) return;
-    const tick = () => {
-      const age = Date.now() - Date.parse(work.started_at);
-      if (age > 1800000 && !lock.current) {
+    const t = setInterval(() => {
+      if (Date.now() - Date.parse(work.started_at) > 1800000 && !lock.current) {
         setWork(null);
         setLogs([]);
-        position.current = IDLE.to;
-        onAction({ ...IDLE, started: Date.now() });
-        setNotice("La jornada ha caducado. Puedes comenzar otra.");
-        return;
+        onAction({ ...IDLE, from: s.player, to: s.player });
+        setNotice("La jornada ha caducado. Puedes empezar otra.");
       }
-      setSeconds(Math.max(0, 8 - Math.floor(age / 1000)));
-    };
-    tick();
-    const t = setInterval(tick, 500);
+    }, 1000);
     return () => clearInterval(t);
-  }, [work, onAction]);
+  }, [work, s, onAction]);
   useEffect(() => {
-    if (!sailing) return;
-    const t = setInterval(
-      () =>
-        setTripSeconds(
-          Math.min(60, Math.floor((Date.now() - tripStart.current) / 1000)),
-        ),
-      250,
-    );
-    return () => clearInterval(t);
-  }, [sailing]);
+    const vectors: Record<string, [number, number]> = {
+      ArrowUp: [0, -1],
+      w: [0, -1],
+      ArrowDown: [0, 1],
+      s: [0, 1],
+      ArrowLeft: [-1, 0],
+      a: [-1, 0],
+      ArrowRight: [1, 0],
+      d: [1, 0],
+    };
+    const update = () => {
+      let x = 0,
+        y = 0;
+      for (const key of keys.current) {
+        const v = vectors[key];
+        if (v) {
+          x += v[0];
+          y += v[1];
+        }
+      }
+      s.input = { x, y };
+    };
+    const down = (e: KeyboardEvent) => {
+      if (
+        (e.target as HTMLElement)?.closest(
+          "input,textarea,select,[contenteditable=true]",
+        ) ||
+        e.ctrlKey ||
+        e.metaKey ||
+        e.altKey
+      )
+        return;
+      const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+      if (!vectors[key] || lock.current) return;
+      e.preventDefault();
+      keys.current.add(key);
+      update();
+    };
+    const up = (e: KeyboardEvent) => {
+      keys.current.delete(e.key.length === 1 ? e.key.toLowerCase() : e.key);
+      update();
+    };
+    const stop = () => {
+      keys.current.clear();
+      s.input = { x: 0, y: 0 };
+    };
+    window.addEventListener("keydown", down);
+    window.addEventListener("keyup", up);
+    window.addEventListener("blur", stop);
+    document.addEventListener("visibilitychange", stop);
+    return () => {
+      window.removeEventListener("keydown", down);
+      window.removeEventListener("keyup", up);
+      window.removeEventListener("blur", stop);
+      document.removeEventListener("visibilitychange", stop);
+      stop();
+    };
+  }, [s]);
+  const cooling = Date.parse(status?.next_at ?? "") > Date.now(),
+    complete = (status?.deliveries ?? 0) >= 50;
   async function animate(
     kind: "chop" | "deliver",
     to: { x: number; y: number },
-    duration: number,
+    extra: number,
   ) {
+    if (s.aboard) throw Error("Desembarca antes de trabajar en tierra.");
+    const path = walkingPath(s.player, to, s.obstacles);
+    if (!path)
+      throw Error(
+        "No hay camino por tierra. Vuelve a esta costa con el barco.",
+      );
+    const length = path
+        .slice(1)
+        .reduce((sum, p, i) => sum + distance(p, path[i]), 0),
+      walkDuration = Math.max(250, (length / 62) * 1000),
+      duration = walkDuration + extra;
     onAction({
       kind,
-      from: position.current,
-      to,
+      from: s.player,
+      to: path[path.length - 1],
       started: Date.now(),
       duration,
+      walkDuration,
       logs: logs.length,
+      path,
     });
     await new Promise<void>((resolve) => {
-      actionTimer.current = setTimeout(resolve, duration);
+      timer.current = setTimeout(resolve, duration);
     });
-    position.current = to;
+    if (mounted.current) s.player = { ...path[path.length - 1] };
   }
-  async function collect(i: number) {
-    if (lock.current || !work || logs.includes(i) || sailing) return;
-    lock.current = true;
-    setBusy(true);
-    setActionLabel("Caminando y cortando…");
-    await animate("chop", TREES[i], 5500);
-    if (!mounted.current) return;
-    const nextLogs = [...logs, i];
-    setLogs(nextLogs);
-    onAction({
-      kind: "idle",
-      from: position.current,
-      to: position.current,
-      started: Date.now(),
-      duration: 0,
-      logs: nextLogs.length,
-    });
-    setNotice("Tronco recogido y añadido a tu carga.");
-    setBusy(false);
-    lock.current = false;
-    setActionLabel("");
-  }
-  const next = status?.next_at ? Date.parse(status.next_at) : 0;
-  const cooling = next > Date.now(),
-    complete = (status?.deliveries ?? 0) >= 50;
   async function begin() {
-    if (lock.current) return;
+    if (lock.current || s.aboard) return;
     lock.current = true;
     setBusy(true);
     setFailure("");
@@ -174,8 +236,7 @@ export function HarborGame({
     try {
       setWork(await startWork());
       setLogs([]);
-      position.current = IDLE.to;
-      onAction({ ...IDLE, started: Date.now() });
+      onAction({ ...IDLE, from: s.player, to: s.player });
     } catch (e) {
       setFailure(friendlyError(e));
     } finally {
@@ -183,87 +244,156 @@ export function HarborGame({
       setBusy(false);
     }
   }
-  async function deliver() {
-    if (lock.current || !work || logs.length !== 3 || seconds > 0) return;
+  async function collect(i: number) {
+    if (lock.current || !work || logs.includes(i) || s.aboard) return;
     lock.current = true;
     setBusy(true);
     setFailure("");
+    setActionLabel("Caminando y cortando…");
     try {
-      setActionLabel("Llevando tu carga al muelle…");
-      await animate("deliver", HARBOR, 9000);
+      await animate("chop", TREES[i], 2600);
       if (!mounted.current) return;
-      setActionLabel("Confirmando entrega…");
-      const s = await finishWork(work.token);
-      if (!mounted.current) return;
-      onAction({
-        kind: "idle",
-        from: HARBOR,
-        to: HARBOR,
-        started: Date.now(),
-        duration: 0,
-        logs: 0,
-      });
-      onStatus(s);
-      setWork(null);
-      setLogs([]);
-      setNotice(
-        "¡Entrega guardada! Has ayudado a levantar el muelle. Vuelve dentro de 24 horas para otra jornada.",
-      );
+      const next = [...logs, i];
+      setLogs(next);
+      onAction({ ...IDLE, from: s.player, to: s.player, logs: next.length });
+      setNotice("Tronco añadido a tu carga.");
     } catch (e) {
       setFailure(friendlyError(e));
-      onAction({
-        kind: "idle",
-        from: position.current,
-        to: position.current,
-        started: Date.now(),
-        duration: 0,
-        logs: 3,
-      });
+      onAction({ ...IDLE, from: s.player, to: s.player, logs: logs.length });
     } finally {
       lock.current = false;
       setBusy(false);
       setActionLabel("");
     }
   }
-  function sail() {
-    if (lock.current || sailing) return;
-    tripStart.current = Date.now();
-    setTripSeconds(0);
-    onVoyageStarted(tripStart.current);
-    setSailing(true);
-    onVoyage(true);
-    setNotice(
-      "Tu barco rodea la isla. La cámara te acompaña durante un minuto.",
-    );
-    tripTimer.current = setTimeout(() => {
-      setSailing(false);
-      onVoyage(false);
-      setNotice("¡Travesía completada! Puedes volver a navegar.");
-    }, VOYAGE_MS);
+  async function deliver() {
+    if (lock.current || !work || logs.length !== 3 || s.aboard) return;
+    lock.current = true;
+    setBusy(true);
+    setFailure("");
+    try {
+      setActionLabel("Llevando 3 troncos al muelle…");
+      await animate("deliver", HARBOR, 1200);
+      if (!mounted.current) return;
+      setActionLabel("Confirmando tus 3 troncos…");
+      const result = await finishWork(work.token);
+      if (!mounted.current) return;
+      onStatus(result);
+      setWork(null);
+      setLogs([]);
+      onAction({ ...IDLE, from: s.player, to: s.player });
+      setNotice(
+        "¡+3 troncos entregados! Es una aportación de madera. Tu siguiente misión: encontrar animales ocultos.",
+      );
+    } catch (e) {
+      setFailure(friendlyError(e));
+      onAction({ ...IDLE, from: s.player, to: s.player, logs: 3 });
+    } finally {
+      lock.current = false;
+      setBusy(false);
+      setActionLabel("");
+    }
+  }
+  function survey() {
+    onActivity("wildlife");
+    setFailure("");
+    setNotice("");
+    s.follow = true;
+    s.notice =
+      "Explora a pie o en barco. Al acercarte a una especie oculta, se guardará en tu inventario.";
+  }
+  function travelBoat() {
+    setFailure("");
+    setNotice("");
+    if (s.aboard) leaveBoat(s);
+    else boardBoat(s);
+    setView(snapshot());
+  }
+  function direction(x: number, y: number) {
+    if (lock.current || s.action.kind !== "idle") return;
+    s.input = { x, y };
+    s.follow = true;
   }
   return (
     <section className="game-activities" aria-label="Actividades del país">
+      <div className="travel-controls" aria-label="Mover tu personaje o barco">
+        <span>{view.aboard ? "⚓ A bordo" : "🚶 A pie"}</span>
+        {(
+          [
+            ["↑", 0, -1, "norte"],
+            ["←", -1, 0, "oeste"],
+            ["↓", 0, 1, "sur"],
+            ["→", 1, 0, "este"],
+          ] as const
+        ).map(([label, x, y, name]) => (
+          <button
+            key={name}
+            aria-label={`Mover al ${name}`}
+            disabled={busy}
+            onPointerDown={(e) => {
+              e.preventDefault();
+              e.currentTarget.setPointerCapture(e.pointerId);
+              pressed.current = Date.now();
+              direction(x, y);
+            }}
+            onPointerUp={() => {
+              s.input = { x: 0, y: 0 };
+            }}
+            onPointerCancel={() => {
+              s.input = { x: 0, y: 0 };
+            }}
+            onLostPointerCapture={() => {
+              s.input = { x: 0, y: 0 };
+            }}
+            onClick={(e) => {
+              if (
+                !busy &&
+                (e.detail === 0 || Date.now() - pressed.current < 140)
+              ) {
+                direction(x, y);
+                stepAdventure(s, 0.05, Date.now());
+                s.input = { x: 0, y: 0 };
+              }
+            }}
+          >
+            {label}
+          </button>
+        ))}
+        <button
+          className="follow-player"
+          aria-label="Seguir a mi personaje"
+          onClick={() => {
+            s.follow = true;
+          }}
+        >
+          ◎
+        </button>
+      </div>
       {activity !== "explore" && (
-        <div className="activity-sheet">
+        <div className="activity-sheet" ref={sheet}>
           <div className="activity-heading">
             <div>
               <small>
-                {activity === "ship"
-                  ? "IDEA DE @.CYBERFILE"
-                  : "PRIMERA OBRA ENTRE TODOS"}
+                {activity === "wildlife"
+                  ? "NUEVA MISIÓN · FAUNA OCULTA"
+                  : activity === "ship"
+                    ? "TÚ LLEVAS EL TIMÓN"
+                    : "PRIMERA OBRA ENTRE TODOS"}
               </small>
               <h2>
                 {activity === "ship"
-                  ? "Nuestro barco naval"
-                  : activity === "wood"
-                    ? "Una entrega. Tres troncos."
-                    : "Construyamos el muelle"}
+                  ? "Explora con tu barco"
+                  : activity === "wildlife"
+                    ? "Tu inventario de fauna"
+                    : activity === "wood"
+                      ? "Recoge y entrega 3 troncos"
+                      : "Construyamos el muelle"}
               </h2>
             </div>
             <button
               disabled={busy}
-              onClick={() => onActivity("explore")}
               aria-label="Cerrar actividad"
+              onClick={() => onActivity("explore")}
             >
               ×
             </button>
@@ -271,87 +401,147 @@ export function HarborGame({
           {activity === "ship" ? (
             <>
               <p>
-                Sube a bordo y da la vuelta a toda la isla. El barco ya forma
-                parte de nuestro mapa.
+                {view.aboard
+                  ? "Mantén una flecha para navegar. Sin pulsar, el barco se detiene."
+                  : "Acércate al barco por tierra y embarca. Puedes volver a bajar en cualquier costa accesible."}
               </p>
               <button
                 className="primary"
-                disabled={sailing || busy}
-                onClick={sail}
+                disabled={busy || (view.aboard && !view.canLand)}
+                onClick={travelBoat}
               >
-                {sailing
-                  ? `Rodeando la isla · ${tripSeconds} / 60 s`
-                  : "Dar la vuelta a la isla →"}
+                {view.aboard
+                  ? view.canLand
+                    ? "Desembarcar aquí →"
+                    : "Acércate a una costa para bajar"
+                  : view.nearBoat
+                    ? "Embarcar →"
+                    : "Caminar hasta el barco →"}
               </button>
-              <div className="ship-helm">
-                <button disabled={!sailing} onClick={() => onSteer(-20)}>
-                  ← Babor
-                </button>
-                <span>Timón</span>
-                <button disabled={!sailing} onClick={() => onSteer(20)}>
-                  Estribor →
-                </button>
+              <small>
+                Flechas o WASD · El barco se queda donde lo dejas. No puede
+                atravesar tierra.
+              </small>
+            </>
+          ) : activity === "wildlife" ? (
+            <>
+              <p>
+                <strong>
+                  {view.found.length} / {HIDDEN_ANIMALS.length} especies
+                  descubiertas
+                </strong>{" "}
+                · Acércate a los animales ocultos para registrarlos. Hay
+                especies en los islotes.
+              </p>
+              <div className="animal-inventory">
+                {HIDDEN_ANIMALS.map((a) => {
+                  const found = view.found.includes(a.code);
+                  return (
+                    <div key={a.code} className={found ? "found" : ""}>
+                      <span aria-hidden="true">{found ? a.icon : "?"}</span>
+                      <strong>{found ? a.name : "Por descubrir"}</strong>
+                    </div>
+                  );
+                })}
               </div>
+              <button
+                className="primary"
+                onClick={() => {
+                  onActivity("explore");
+                  s.follow = true;
+                  s.notice =
+                    "Toca el suelo para caminar o mantén las flechas. Las especies aparecen al acercarte.";
+                }}
+              >
+                Explorar y buscar animales →
+              </button>
+              <button
+                className="secondary-game"
+                onClick={() => onActivity("ship")}
+              >
+                Buscar por mar · Ver barco →
+              </button>
+              <small>
+                Descubrimientos guardados en tu sesión. Su utilidad llegará en
+                una próxima fase.
+              </small>
             </>
           ) : (
             <>
               <div className="delivery-progress">
                 <progress
-                  aria-label="Entregas para el muelle"
-                  max={50}
-                  value={status?.deliveries ?? 0}
+                  aria-label="Troncos para el muelle"
+                  max={(status?.goal ?? 50) * 3}
+                  value={(status?.deliveries ?? 0) * 3}
                 />
                 <strong>
                   {status
-                    ? `${status.deliveries} / 50 entregas`
-                    : "Conectando con la obra…"}
+                    ? `${status.deliveries * 3} / ${status.goal * 3} troncos`
+                    : "Conectando…"}
                 </strong>
               </div>
+              <small>
+                {status?.deliveries ?? 0} / {status?.goal ?? 50} aportaciones ·
+                Cada entrega contiene 3 troncos.
+              </small>
               {activity === "dock" ? (
                 <>
                   <p>
                     {complete
-                      ? "¡El muelle está terminado! Gracias a todas las sesiones que colaboraron."
-                      : "Cada entrega añade madera al muelle. Su aspecto cambia con el progreso de todos."}
+                      ? "¡Muelle terminado! Ahora puedes explorar la fauna y las costas."
+                      : "La madera que transportas se añade a la obra al confirmar la entrega."}
                   </p>
-                  <small>
-                    Propuesta de @kender.villanueva2 · pesca y cultivos de la
-                    comunidad.
-                  </small>
-                  {!complete && (
-                    <button
-                      className="primary"
-                      onClick={() => onActivity("wood")}
-                    >
-                      Ir al bosque y ayudar →
-                    </button>
-                  )}
+                  <button
+                    className="primary"
+                    disabled={busy || view.aboard}
+                    onClick={() => {
+                      if (cooling || complete) survey();
+                      else {
+                        onActivity("wood");
+                        walkTo(s, FOREST);
+                      }
+                    }}
+                  >
+                    {cooling || complete
+                      ? "Siguiente misión: buscar animales →"
+                      : "Ir al bosque y ayudar →"}
+                  </button>
+                  <button
+                    className="secondary-game"
+                    onClick={() => onActivity("ship")}
+                  >
+                    Ir al barco →
+                  </button>
                 </>
               ) : (
                 <>
                   {!work ? (
                     <>
                       <p>
-                        {complete
-                          ? "El muelle ya está terminado. Explora el barco y las zonas del país."
-                          : cooling
-                            ? `Tu siguiente jornada: ${new Date(next).toLocaleString("es-ES", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}.`
-                            : "Recoge tres troncos y entrégalos. Una jornada cada 24 horas por sesión de juego."}
-                      </p>
-                      <button
-                        className="primary"
-                        disabled={
-                          busy || sailing || cooling || complete || !status
-                        }
-                        onClick={() => void begin()}
-                      >
-                        {busy
-                          ? "Preparando…"
+                        {view.aboard
+                          ? "Desembarca para recoger madera."
                           : complete
-                            ? "Obra terminada"
+                            ? "La obra ya está terminada. Tienes una misión de fauna disponible."
                             : cooling
-                              ? "Tu entrega ya cuenta"
-                              : "Empezar jornada →"}
+                              ? `Ya entregaste tus 3 troncos. Próxima aportación: ${new Date(status!.next_at!).toLocaleString("es-ES", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}.`
+                              : "Cada jornada reúne 3 troncos: se suman 3 a la madera y 1 a las aportaciones. Una jornada cada 24 horas por sesión."}
+                      </p>
+                      {!cooling && !complete && (
+                        <button
+                          className="primary"
+                          disabled={busy || view.aboard || !status}
+                          onClick={() => void begin()}
+                        >
+                          {busy ? "Preparando…" : "Empezar jornada de madera →"}
+                        </button>
+                      )}
+                      <button
+                        className={
+                          cooling || complete ? "primary" : "secondary-game"
+                        }
+                        onClick={survey}
+                      >
+                        Buscar animales · Misión disponible →
                       </button>
                     </>
                   ) : (
@@ -364,7 +554,7 @@ export function HarborGame({
                           <button
                             key={i}
                             aria-label={`Recoger tronco ${i + 1}`}
-                            disabled={logs.includes(i) || busy || sailing}
+                            disabled={logs.includes(i) || busy || view.aboard}
                             onClick={() => void collect(i)}
                           >
                             <span aria-hidden="true">
@@ -380,18 +570,14 @@ export function HarborGame({
                       </div>
                       <button
                         className="primary"
-                        disabled={
-                          busy || sailing || logs.length < 3 || seconds > 0
-                        }
+                        disabled={busy || logs.length < 3 || view.aboard}
                         onClick={() => void deliver()}
                       >
                         {busy
-                          ? actionLabel || "Guardando entrega…"
+                          ? actionLabel
                           : logs.length < 3
-                            ? `${logs.length} / 3 troncos recogidos`
-                            : seconds > 0
-                              ? `Preparando la carga… ${seconds} s`
-                              : "Entregar madera al muelle →"}
+                            ? `${logs.length} / 3 troncos en tu carga`
+                            : "Entregar mis 3 troncos al muelle →"}
                       </button>
                     </>
                   )}
@@ -402,21 +588,22 @@ export function HarborGame({
           <p className="game-feedback" role="status">
             {actionLabel ||
               failure ||
+              view.error ||
               notice ||
-              (activity !== "ship" ? error : "")}
+              view.notice ||
+              (activity === "wood" || activity === "dock" ? error : "")}
           </p>
           <small className="session-note">
-            {nick
-              ? `Juegas desde la sesión de @${nick}.`
-              : "Juegas como Anónimo. No necesitas un nick para ayudar."}{" "}
-            Conserva esta sesión para recordar tu jornada. Contamos entregas, no
-            personas únicas verificadas.
+            {nick ? `Juegas como @${nick}.` : "Juegas como Anónimo."} Arrastra
+            para mirar · Pellizca para acercar · ◎ vuelve a seguirte.
           </small>
         </div>
       )}
       {activity === "explore" && (
-        <div className="explore-hint">
-          Arrastra el mapa · Pellizca para acercarte · Toca un vecino
+        <div className="explore-hint" role="status">
+          {view.error ||
+            view.notice ||
+            "Toca el suelo para caminar · Mantén las flechas para moverte · Arrastra para mirar"}
         </div>
       )}
       <nav className="activity-tabs" aria-label="Elegir actividad">
@@ -426,6 +613,7 @@ export function HarborGame({
             ["wood", "🪵", "Madera"],
             ["dock", "⚒", "Muelle"],
             ["ship", "⚓", "Barco"],
+            ["wildlife", "🐾", `Fauna ${view.found.length}`],
           ] as const
         ).map(([id, icon, title]) => (
           <button

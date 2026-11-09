@@ -9,8 +9,9 @@ export function drawPlayer(
   nick = "Anónimo",
   still = false,
   color = "#32cdb0",
+  pose?: ReturnType<typeof playerPose>,
 ) {
-  const p = playerPose(action, now),
+  const p = pose ?? playerPose(action, now),
     q = screen(p.x, p.y),
     time = still ? 0 : p.phase;
   ctx.save();

@@ -11,6 +11,7 @@ export function drawHarbor(
   offset = 0,
   voyageStarted = 0,
   now = Date.now(),
+  manualBoat?: { x: number; y: number; facing: number },
 ) {
   const f = screen(FOREST.x, FOREST.y);
   ctx.save();
@@ -55,9 +56,11 @@ export function drawHarbor(
     ctx.fill();
   }
   ctx.restore();
-  const pos = voyage
-    ? shipPosition(voyageStarted, now, offset)
-    : { ...SHIP, facing: 1 };
+  const pos =
+    manualBoat ??
+    (voyage
+      ? shipPosition(voyageStarted, now, offset)
+      : { ...SHIP, facing: 1 });
   const boat = screen(pos.x, pos.y);
   ctx.save();
   ctx.translate(boat.x, boat.y + Math.sin(time * 1.8) * 1.3 * scale);

@@ -1,5 +1,13 @@
+import {
+  stepAdventure,
+  walkTo,
+  HIDDEN_ANIMALS,
+  type Adventure,
+} from "../lib/adventure.ts";
+import { MARKET_OBSTACLE, distance } from "../lib/navigation.ts";
+import { drawDiscoveries } from "../lib/adventure-art.ts";
 import { drawPlayer, drawForest, drawGroundDetail } from "../lib/player-art.ts";
-import { playerPose, shipPosition, type PlayerAction } from "../lib/player.ts";
+import { playerPose } from "../lib/player.ts";
 import { useEffect, useRef, useState } from "react";
 import type { Bounds, District, Resident, WorldObject } from "../lib/types.ts";
 import { drawWildlife } from "../lib/wildlife.ts";
@@ -21,26 +29,49 @@ type Props = {
   onSelect: (r: Resident | null) => void;
   onPoint: (x: number, y: number) => void;
   onBounds: (b: Bounds) => void;
-  actor?: PlayerAction;
+  adventure?: Adventure;
+  onDiscover?: (code: string) => void;
   playerNick?: string;
   playerAvatar?: number;
-  voyageStarted?: number;
   gameMode?: boolean;
   activityOpen?: boolean;
   destination?: { x: number; y: number; zoom: number; nonce: number } | null;
   deliveries?: number;
-  voyage?: boolean;
-  shipOffset?: number;
   onActivity?: (a: Activity) => void;
 };
 type Camera = { x: number; y: number; zoom: number };
 const initial: Camera = { x: 800, y: 1080, zoom: 1 };
+const PARCEL_POSITIONS = Array.from({ length: 4096 }, (_, i) =>
+  parcelPosition(i + 1),
+);
 export function Atlas(props: Props) {
   const canvas = useRef<HTMLCanvasElement>(null),
     box = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ w: 800, h: 560 }),
     [image, setImage] = useState<HTMLImageElement | null>(null),
     [cam, setCam] = useState(initial);
+  const live = useRef(props);
+  live.current = props;
+  const renderedCam = useRef<Camera>({ ...initial }),
+    targetCam = useRef<Camera>({ ...initial }),
+    renderedCenter = useRef(280);
+  useEffect(() => {
+    targetCam.current = { ...cam };
+  }, [cam]);
+  useEffect(() => {
+    if (props.adventure)
+      props.adventure.obstacles = [
+        MARKET_OBSTACLE,
+        ...props.objects
+          .filter((o) => o.kind === "house")
+          .map((o) => ({
+            left: o.x - 24,
+            right: o.x + 24,
+            top: o.y - 40,
+            bottom: o.y + 18,
+          })),
+      ];
+  }, [props.objects, props.adventure]);
   const drag = useRef<{
     x: number;
     y: number;
@@ -94,14 +125,22 @@ export function Atlas(props: Props) {
   const market = props.objects.find((o) => o.id === FIRST_MARKET.id);
   function screen(x: number, y: number) {
     return {
-      x: (x - cam.x) * scale + size.w / 2,
-      y: (y - cam.y) * scale + centerY,
+      x:
+        (x - renderedCam.current.x) * fit * renderedCam.current.zoom +
+        size.w / 2,
+      y:
+        (y - renderedCam.current.y) * fit * renderedCam.current.zoom +
+        renderedCenter.current,
     };
   }
   function world(x: number, y: number) {
     return {
-      x: (x - size.w / 2) / scale + cam.x,
-      y: (y - centerY) / scale + cam.y,
+      x:
+        (x - size.w / 2) / (fit * renderedCam.current.zoom) +
+        renderedCam.current.x,
+      y:
+        (y - renderedCenter.current) / (fit * renderedCam.current.zoom) +
+        renderedCam.current.y,
     };
   }
   function zoom(delta: number) {
@@ -125,65 +164,25 @@ export function Atlas(props: Props) {
   }, []);
   useEffect(() => {
     if (props.focus) {
+      if (props.adventure) props.adventure.follow = false;
       const p = parcelPosition(props.focus.parcel_id);
       setCam({ x: p.x, y: p.y, zoom: 7 });
     }
   }, [props.focus]);
   useEffect(() => {
-    if (props.destination)
+    if (props.destination) {
+      if (props.adventure) props.adventure.follow = false;
       setCam({
         x: props.destination.x,
         y: props.destination.y,
         zoom: props.destination.zoom,
       });
+    }
   }, [props.destination]);
   useEffect(() => {
     if (props.gameMode && !props.focus && !props.destination)
-      setCam({ ...initial, zoom: window.innerWidth < 700 ? 1.6 : 1 });
+      setCam({ ...initial, zoom: window.innerWidth < 700 ? 4.5 : 3 });
   }, [props.gameMode]);
-  useEffect(() => {
-    if (
-      !props.gameMode ||
-      (!props.voyage && (!props.actor || props.actor.kind === "idle"))
-    )
-      return;
-    const tick = () => {
-      const p = props.voyage
-        ? shipPosition(
-            props.voyageStarted ?? 0,
-            Date.now(),
-            props.shipOffset ?? 0,
-          )
-        : playerPose(props.actor!, Date.now());
-      setCam((c) => ({
-        ...c,
-        x: c.x + (p.x - c.x) * 0.3,
-        y: c.y + (p.y - c.y) * 0.3,
-        zoom: props.voyage ? 3.5 : 5,
-      }));
-    };
-    tick();
-    const t = setInterval(tick, 80);
-    return () => clearInterval(t);
-  }, [
-    props.actor,
-    props.voyage,
-    props.voyageStarted,
-    props.shipOffset,
-    props.gameMode,
-  ]);
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      props.onBounds({
-        left: cam.x - size.w / 2 / scale,
-        top: cam.y - centerY / scale,
-        right: cam.x + size.w / 2 / scale,
-        bottom: cam.y + (size.h - centerY) / scale,
-        zoom: cam.zoom,
-      });
-    }, 180);
-    return () => clearTimeout(timeout);
-  }, [cam, size, scale, centerY, props.onBounds]);
   useEffect(() => {
     const el = canvas.current;
     if (!el) return;
@@ -207,9 +206,82 @@ export function Atlas(props: Props) {
     el.height = size.h * dpr;
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
     let animation = 0;
-    let lastFrame = -Infinity;
+    el.dataset.loopStarts = String(Number(el.dataset.loopStarts ?? 0) + 1);
+    let totalFrames = 0,
+      frameCost = 0;
+    let lastFrame = 0,
+      lastBounds = 0,
+      lastFps = performance.now(),
+      frameCount = 0;
+    let previousBounds = { x: Infinity, y: Infinity, zoom: 0 };
     function draw(now: number) {
       if (!ctx) return;
+      const frameStart = performance.now();
+      const props = live.current,
+        state = props.adventure;
+      const dt = lastFrame ? Math.min(0.05, (now - lastFrame) / 1000) : 1 / 60;
+      lastFrame = now;
+      const clock = performance.timeOrigin + now;
+      if (state && props.gameMode) {
+        stepAdventure(state, dt, clock);
+        const point = state.aboard ? state.boat : state.player;
+        for (const a of HIDDEN_ANIMALS)
+          if (!state.found.has(a.code) && distance(point, a) < 29)
+            props.onDiscover?.(a.code);
+      }
+      const target = { ...targetCam.current };
+      if (state?.follow && props.gameMode) {
+        const p = state.aboard ? state.boat : state.player;
+        target.x = p.x;
+        target.y = p.y;
+      }
+      const camera = renderedCam.current,
+        blend = 1 - Math.exp(-12 * dt);
+      camera.x += (target.x - camera.x) * blend;
+      camera.y += (target.y - camera.y) * blend;
+      camera.zoom += (target.zoom - camera.zoom) * blend;
+      renderedCenter.current += (centerY - renderedCenter.current) * blend;
+      const cam = camera,
+        scale = fit * cam.zoom,
+        screen = (x: number, y: number) => ({
+          x: (x - cam.x) * scale + size.w / 2,
+          y: (y - cam.y) * scale + renderedCenter.current,
+        });
+      const market = props.objects.find((o) => o.id === FIRST_MARKET.id);
+      if (
+        now - lastBounds > 650 &&
+        (distance(previousBounds, cam) > 35 ||
+          Math.abs(previousBounds.zoom - cam.zoom) > 0.3)
+      ) {
+        lastBounds = now;
+        previousBounds = { ...cam };
+        props.onBounds({
+          left: cam.x - size.w / 2 / scale,
+          right: cam.x + size.w / 2 / scale,
+          top: cam.y - renderedCenter.current / scale,
+          bottom: cam.y + (size.h - renderedCenter.current) / scale,
+          zoom: cam.zoom,
+        });
+      }
+      frameCount++;
+      if (now - lastFps > 1200) {
+        const fps = frameCount / ((now - lastFps) / 1000);
+        if (state) state.fps = fps;
+        el!.dataset.fps = String(Math.round(fps));
+        el!.dataset.drawMs = frameCost.toFixed(2);
+        el!.dataset.frameCount = String(totalFrames);
+        if (state) {
+          el!.dataset.playerX = state.player.x.toFixed(2);
+          el!.dataset.playerY = state.player.y.toFixed(2);
+          el!.dataset.boatX = state.boat.x.toFixed(2);
+          el!.dataset.boatY = state.boat.y.toFixed(2);
+          el!.dataset.mode = state.aboard ? "boat" : "foot";
+          el!.dataset.cameraZoom = cam.zoom.toFixed(2);
+        }
+        frameCount = 0;
+        lastFps = now;
+      }
+
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.fillStyle = "#0b293a";
       ctx.fillRect(0, 0, size.w, size.h);
@@ -330,7 +402,7 @@ export function Atlas(props: Props) {
         ctx.lineWidth = 1;
         if (cam.zoom > 3)
           for (let id = 1; id <= 4096; id++) {
-            const p = parcelPosition(id),
+            const p = PARCEL_POSITIONS[id - 1],
               s = screen(p.x, p.y);
             if (s.x < 0 || s.y < 0 || s.x > size.w || s.y > size.h) continue;
             const dx = 2.5 * scale,
@@ -344,7 +416,8 @@ export function Atlas(props: Props) {
             ctx.stroke();
           }
         for (const r of props.residents) {
-          const p = parcelPosition(r.parcel_id),
+          const p =
+              PARCEL_POSITIONS[r.parcel_id - 1] ?? parcelPosition(r.parcel_id),
             s = screen(p.x, p.y);
           if (s.x < -40 || s.y < -40 || s.x > size.w + 40 || s.y > size.h + 40)
             continue;
@@ -406,71 +479,61 @@ export function Atlas(props: Props) {
         scale,
         reducedMotion.matches ? 0 : now / 1000,
         props.deliveries ?? 0,
-        !!props.voyage,
-        props.shipOffset ?? 0,
-        props.voyageStarted ?? 0,
-        Date.now(),
+        false,
+        0,
+        0,
+        clock,
+        state ? { ...state.boat, facing: state.direction } : undefined,
       );
       drawForest(ctx, screen, scale);
       drawCapitalZones(ctx, screen, size.w, size.h);
-      if (props.actor) {
-        const boat = props.voyage
-          ? shipPosition(
-              props.voyageStarted ?? 0,
-              Date.now(),
-              props.shipOffset ?? 0,
-            )
-          : null;
-        const actor = boat
-          ? {
-              ...props.actor,
-              kind: "idle" as const,
-              from: boat,
-              to: { x: boat.x, y: boat.y - 7 },
-            }
-          : props.actor;
+      if (state && props.gameMode) {
+        drawDiscoveries(
+          ctx,
+          screen,
+          scale,
+          state,
+          reducedMotion.matches ? 0 : now / 1000,
+        );
+        const actor = state.action;
+        const point = state.aboard
+          ? { x: state.boat.x, y: state.boat.y - 7 }
+          : state.player;
+        const pose =
+          actor.kind !== "idle" && !state.aboard
+            ? playerPose(actor, clock)
+            : {
+                ...point,
+                walking: state.walking && !state.aboard,
+                chopping: false,
+                unloading: false,
+                phase: state.phase,
+              };
         drawPlayer(
           ctx,
           screen,
-          boat ? scale * 0.7 : scale,
+          state.aboard ? scale * 0.7 : scale,
           actor,
-          Date.now(),
+          clock,
           props.playerNick,
           reducedMotion.matches,
           AVATARS[props.playerAvatar ?? 1]?.color,
+          pose,
         );
       }
+      frameCost = performance.now() - frameStart;
+      totalFrames++;
     }
+
     function animate(now: number) {
-      if (!document.hidden && now - lastFrame >= 1000 / 24) {
-        draw(now);
-        lastFrame = now;
-      }
+      if (!document.hidden) draw(now);
+      else lastFrame = 0;
       animation = requestAnimationFrame(animate);
     }
-    draw(performance.now());
     animation = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(animation);
-  }, [
-    cam,
-    size,
-    image,
-    props.residents,
-    props.objects,
-    props.districts,
-    props.selected,
-    props.focus,
-    triSprite,
-    animalSprites,
-    props.deliveries,
-    props.actor,
-    props.playerNick,
-    props.playerAvatar,
-    props.voyageStarted,
-    props.voyage,
-    props.shipOffset,
-    centerY,
-  ]);
+  }, [size, image, triSprite, animalSprites, centerY, fit]);
+
   return (
     <>
       <nav className="zone-navigation" aria-label="Ir a las zonas del mapa">
@@ -478,7 +541,10 @@ export function Atlas(props: Props) {
           <button
             key={zone.id}
             aria-pressed={activeZone?.id === zone.id}
-            onClick={() => setCam({ x: zone.x, y: zone.y, zoom: 3.5 })}
+            onClick={() => {
+              if (props.adventure) props.adventure.follow = false;
+              setCam({ x: zone.x, y: zone.y, zoom: 3.5 });
+            }}
           >
             <b style={{ color: zone.color }}>{zone.id}</b>
             <span>
@@ -490,7 +556,10 @@ export function Atlas(props: Props) {
         {market && (
           <button
             className="market-jump"
-            onClick={() => setCam({ x: market.x, y: market.y - 18, zoom: 5.5 })}
+            onClick={() => {
+              if (props.adventure) props.adventure.follow = false;
+              setCam({ x: market.x, y: market.y - 18, zoom: 5.5 });
+            }}
           >
             <b>🥔</b>
             <span>Ver Patatas de @maravaf</span>
@@ -517,7 +586,7 @@ export function Atlas(props: Props) {
               ArrowUp: [0, -70],
               ArrowDown: [0, 70],
             };
-            if (directions[e.key]) {
+            if (directions[e.key] && !props.gameMode) {
               e.preventDefault();
               const [x, y] = directions[e.key];
               setCam((c) => ({ ...c, x: c.x + x / scale, y: c.y + y / scale }));
@@ -526,6 +595,7 @@ export function Atlas(props: Props) {
             if (e.key === "-") zoom(1 / 1.4);
           }}
           onPointerDown={(e) => {
+            if (props.adventure) props.adventure.follow = false;
             e.currentTarget.setPointerCapture(e.pointerId);
             pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
             if (pointers.current.size === 2) {
@@ -533,7 +603,7 @@ export function Atlas(props: Props) {
               const rect = e.currentTarget.getBoundingClientRect();
               pinch.current = {
                 distance: Math.max(1, Math.hypot(a.x - b.x, a.y - b.y)),
-                cam: { ...cam },
+                cam: { ...renderedCam.current },
                 anchor: world(
                   (a.x + b.x) / 2 - rect.left,
                   (a.y + b.y) / 2 - rect.top,
@@ -545,7 +615,7 @@ export function Atlas(props: Props) {
             drag.current = {
               x: e.clientX,
               y: e.clientY,
-              cam: { ...cam },
+              cam: { ...renderedCam.current },
               moved: false,
             };
           }}
@@ -610,7 +680,7 @@ export function Atlas(props: Props) {
                 ? {
                     x: remaining.x,
                     y: remaining.y,
-                    cam: { ...cam },
+                    cam: { ...renderedCam.current },
                     moved: true,
                   }
                 : null;
@@ -625,8 +695,9 @@ export function Atlas(props: Props) {
               props.onPoint(Math.round(p.x), Math.round(p.y));
               return;
             }
+            const scale = fit * renderedCam.current.zoom;
             for (const [point, action] of [
-              [SHIP, "ship"],
+              [props.adventure?.boat ?? SHIP, "ship"],
               [HARBOR, "dock"],
               [FOREST, "wood"],
             ] as const) {
@@ -637,6 +708,31 @@ export function Atlas(props: Props) {
                 props.onActivity?.(action);
                 return;
               }
+            }
+            if (
+              props.gameMode &&
+              props.adventure &&
+              renderedCam.current.zoom >= 2
+            ) {
+              const nearby = props.residents.find((r) => {
+                const q = PARCEL_POSITIONS[r.parcel_id - 1];
+                return q && distance(q, p) * scale < 12;
+              });
+              if (nearby) {
+                props.onSelect(nearby);
+                return;
+              }
+              if (
+                market &&
+                Math.abs(p.x - market.x) < 50 &&
+                Math.abs(p.y - market.y) < 85
+              ) {
+                props.adventure.notice =
+                  "El puesto es una construcción física. Tu personaje debe rodearlo.";
+                return;
+              }
+              walkTo(props.adventure, p);
+              return;
             }
             const zone = CAPITAL_ZONES.find((z) => {
               const dx = (p.x - z.x) * scale,
@@ -686,36 +782,18 @@ export function Atlas(props: Props) {
           <button aria-label="Alejar mapa" onClick={() => zoom(1 / 1.5)}>
             −
           </button>
-          <button aria-label="Centrar mapa" onClick={() => setCam(initial)}>
+          <button
+            aria-label="Centrar mapa"
+            onClick={() => {
+              if (props.adventure) {
+                props.adventure.follow = true;
+                setCam((c) => ({ ...c, zoom: 4.5 }));
+              } else setCam(initial);
+            }}
+          >
             ⌖
           </button>
         </div>
-        {props.gameMode && (
-          <nav className="map-dpad" aria-label="Mover el mapa">
-            {(
-              [
-                ["↑", 0, -1, "norte"],
-                ["←", -1, 0, "oeste"],
-                ["↓", 0, 1, "sur"],
-                ["→", 1, 0, "este"],
-              ] as const
-            ).map(([label, x, y, name]) => (
-              <button
-                key={name}
-                aria-label={`Mover mapa al ${name}`}
-                onClick={() =>
-                  setCam((c) => ({
-                    ...c,
-                    x: Math.max(0, Math.min(1600, c.x + (x * 100) / scale)),
-                    y: Math.max(400, Math.min(1800, c.y + (y * 100) / scale)),
-                  }))
-                }
-              >
-                {label}
-              </button>
-            ))}
-          </nav>
-        )}
         <div className="map-caption">
           {props.editing
             ? "Pulsa en el mapa para colocar una construcción."

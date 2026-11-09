@@ -1,3 +1,10 @@
+import {
+  createAdventure,
+  setAdventureAction,
+  saveAdventure,
+  HIDDEN_ANIMALS,
+} from "./lib/adventure.ts";
+import { adventureInventory, discoverAnimal } from "./lib/adventure-api.ts";
 import { IDLE, type PlayerAction } from "./lib/player.ts";
 import {
   useCallback,
@@ -49,14 +56,56 @@ export function App() {
   const [activity, setActivity] = useState<Activity>("explore");
   const [harbor, setHarbor] = useState<HarborStatus | null>(null),
     [harborError, setHarborError] = useState("");
-  const [voyage, setVoyage] = useState(false);
-  const [actor, setActor] = useState<PlayerAction>(IDLE);
-  const [voyageStarted, setVoyageStarted] = useState(0);
-  const [shipOffset, setShipOffset] = useState(0);
-  const steerShip = useCallback(
-    (d: number) => setShipOffset((x) => Math.max(-60, Math.min(60, x + d))),
-    [],
-  );
+  const adventureRef = useRef<ReturnType<typeof createAdventure> | null>(null);
+  if (!adventureRef.current) adventureRef.current = createAdventure();
+  const adventure = adventureRef.current;
+  const inventoryGeneration = useRef(0);
+  const updateAction = useCallback((a: PlayerAction) => {
+    setAdventureAction(adventureRef.current!, a);
+  }, []);
+  const discover = useCallback(async (code: string) => {
+    const state = adventureRef.current!;
+    if (
+      state.pending.has(code) ||
+      state.found.has(code) ||
+      (state.retryAt.get(code) ?? 0) > Date.now()
+    )
+      return;
+    const generation = inventoryGeneration.current;
+    state.pending.add(code);
+    try {
+      const inv = await discoverAnimal(code);
+      if (generation !== inventoryGeneration.current) return;
+      for (const a of inv.animals) state.found.add(a.code);
+      state.error = "";
+      state.notice =
+        "¡Descubrimiento guardado! " +
+        (HIDDEN_ANIMALS.find((a) => a.code === code)?.name ?? "Nueva especie") +
+        ".";
+    } catch {
+      state.retryAt.set(code, Date.now() + 10000);
+      state.error =
+        "No se ha guardado el descubrimiento. Volveremos a intentarlo al acercarte.";
+    } finally {
+      state.pending.delete(code);
+    }
+  }, []);
+  useEffect(() => {
+    if (!playing) return;
+    const save = setInterval(() => saveAdventure(adventure), 3000);
+    const stop = () => {
+      adventure.input = { x: 0, y: 0 };
+      saveAdventure(adventure);
+    };
+    window.addEventListener("blur", stop);
+    document.addEventListener("visibilitychange", stop);
+    return () => {
+      clearInterval(save);
+      stop();
+      window.removeEventListener("blur", stop);
+      document.removeEventListener("visibilitychange", stop);
+    };
+  }, [playing, adventure]);
   const [destination, setDestination] = useState<{
     x: number;
     y: number;
@@ -77,20 +126,11 @@ export function App() {
   }, []);
   const visitActivity = useCallback((a: Activity) => {
     setActivity(a);
-    const target =
-      a === "wood"
-        ? FOREST
-        : a === "dock"
-          ? HARBOR
-          : a === "ship"
-            ? SHIP
-            : null;
-    if (target)
-      setDestination({
-        ...target,
-        zoom: a === "ship" ? 4 : 4.5,
-        nonce: Date.now(),
-      });
+    const state = adventureRef.current!;
+    state.input = { x: 0, y: 0 };
+    state.notice = "";
+    state.follow = true;
+    // Activity tabs never teleport the player or force a new zoom level.
   }, []);
   function openGame(r?: Resident) {
     setMessage("");
@@ -104,6 +144,7 @@ export function App() {
     }
   }
   function closeGame() {
+    adventure.input = { x: 0, y: 0 };
     setPlaying(false);
     if (location.hash === "#jugar")
       history.replaceState(null, "", location.pathname + location.search);
@@ -136,6 +177,23 @@ export function App() {
   }, [playing]);
   const [session, setSession] = useState<Session | null>(null),
     [loadingSession, setLoadingSession] = useState(api.configured);
+  useEffect(() => {
+    const generation = ++inventoryGeneration.current;
+    adventure.found.clear();
+    if (!playing) return;
+    adventureInventory()
+      .then((inv) => {
+        if (generation === inventoryGeneration.current) {
+          for (const a of inv.animals) adventure.found.add(a.code);
+          adventure.error = "";
+        }
+      })
+      .catch(() => {
+        if (generation === inventoryGeneration.current)
+          adventure.error =
+            "No se ha podido cargar el inventario. Puedes seguir explorando.";
+      });
+  }, [playing, session?.user.id, adventure]);
   const [districts, setDistricts] = useState(emptyDistricts),
     [residents, setResidents] = useState<Resident[]>([]),
     [objects, setObjects] = useState<WorldObject[]>([]);
@@ -695,12 +753,10 @@ export function App() {
                 activityOpen={activity !== "explore"}
                 destination={destination}
                 deliveries={harbor?.deliveries ?? 0}
-                actor={playing ? actor : undefined}
                 playerNick={mine?.nick ?? "Anónimo"}
                 playerAvatar={mine?.avatar}
-                voyageStarted={voyageStarted}
-                voyage={voyage}
-                shipOffset={shipOffset}
+                adventure={playing ? adventure : undefined}
+                onDiscover={discover}
                 onActivity={(a) => {
                   if (!playing) openGame();
                   visitActivity(a);
@@ -733,10 +789,8 @@ export function App() {
                   status={harbor}
                   error={harborError}
                   onStatus={setHarbor}
-                  onVoyage={setVoyage}
-                  onVoyageStarted={setVoyageStarted}
-                  onAction={setActor}
-                  onSteer={steerShip}
+                  adventure={adventure}
+                  onAction={updateAction}
                   nick={mine?.nick}
                 />
               </Suspense>

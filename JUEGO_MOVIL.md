@@ -1,29 +1,37 @@
-# Primera versión jugable para móvil
+# Juego de Hispania
 
-Entrada: **Ver mapa / Jugar**, antes del registro y en la cabecera. Tras reservar una parcela se abre el juego enfocado en el nuevo vecino. Enlace directo: `/#jugar`. Salida mediante Volver, Escape o el historial del navegador. La vista ocupa la pantalla disponible con áreas seguras y paneles desplazables en pantallas pequeñas.
+Entrada: **Ver mapa / Jugar**, antes del formulario y en la cabecera; enlace directo `/#jugar`. Se puede explorar como Anónimo. Un nick solo identifica al personaje cuando pertenece a la sesión de la web: buscar o escribir un nick importado no concede propiedad. Los habitantes y sus parcelas permanecen en sus posiciones.
 
-Controles: arrastre, pellizco con dos punteros, zoom, centrado, cruceta, búsqueda y acceso a zonas A/B. Los controles de cámara no trasladan habitantes. Tocar bosque, obra o barco abre su actividad.
+## Navegación y fluidez
 
-## Actividades
+Se mantiene una simulación mutable compartida entre el mapa y los controles. Un solo requestAnimationFrame actualiza posición, cámara y dibujo a la frecuencia de la pantalla. No hay temporizador de 80 ms para la cámara ni límite artificial de 24 fps. La cámara usa amortiguación exponencial según tiempo transcurrido; sigue al jugador sin forzar un nuevo zoom. El estado de React no se actualiza en cada fotograma. Las 4096 posiciones de parcelas se calculan una vez. La consulta de habitantes se limita por distancia y tiempo.
 
-- **Madera:** una sesión de invitado sin email puede iniciar una jornada, recoger tres troncos y entregar. El servidor exige al menos ocho segundos, un token de jornada de esa sesión y un máximo de una entrega cada 24 horas. La respuesta perdida se puede reintentar sin duplicar el contador. La jornada caduca a los 30 minutos.
-- **Muelle:** objetivo inicial de 50 entregas. Progreso persistente y compartido, consultado cada 30 segundos y actualizado inmediatamente al entregar. Su dibujo cambia por etapas y se completa en 50. La última plaza se protege con bloqueo de fila. Idea de @kender.villanueva2, relacionada con las propuestas de pesca de la comunidad.
-- **Barco:** barco naval de @.cyberfile, con velas animadas y travesías locales de 60 segundos alrededor de toda la isla; cámara que sigue el recorrido y controles de babor/estribor limitados a 60 unidades de separación lateral. No es un sistema de combate ni un desplazamiento compartido en tiempo real. No genera recursos ni cambia parcelas.
+Controles móviles: mantener las cuatro flechas para moverse, tocar suelo para caminar por una ruta válida, arrastrar para mirar y pellizcar para acercar. En ordenador: flechas o WASD. El botón ◎ retoma el seguimiento. Mirar una zona o arrastrar la cámara no mueve al personaje. Los botones +/− funcionan durante el movimiento. Al perder foco se libera la dirección para evitar desplazamientos involuntarios. La velocidad depende del tiempo, no del número de fotogramas. En segundo plano Chrome puede reducir la frecuencia de animación; las mediciones visuales se hacen con la pestaña visible.
 
-## Datos y límites
+`terrain.ts` contiene muestras de tierra cada ocho unidades obtenidas del mapa original. `navigation.ts` resuelve rutas A* sin atravesar agua ni las esquinas de obstáculos. El puesto de Patatas de @maravaf tiene una zona sólida que incluye el tejado, el mostrador y sus bordes; las casas del atlas también bloquean el paso. No se han cambiado edificios ni parcelas para trazar estos caminos.
 
-Migración nueva: `supabase/migrations/202611090001_harbor_game.sql`. Crea tres tablas privadas y tres RPC. No modifica las tablas ni los RPC de habitantes existentes. No repetir migraciones antiguas. No publicar service-role keys. La clave publicable sigue usando los permisos públicos y de sesión.
+## Madera y obra del muelle
 
-`harbor_status` devuelve únicamente total, objetivo y resumen de la sesión propia; no expone identidades de acceso. Escribir un nick importado no concede propiedad. Un visitante puede contribuir sin registrar un habitante; no se le atribuye el nick de otra persona.
+Cada jornada permite cortar tres troncos. El personaje camina por una ruta válida, mueve el hacha y recibe la carga al terminar cada corte. El transporte al muelle usa esa misma navegación; la duración depende de la distancia real del camino. La madera se descarga solo al confirmar `finish_harbor_work`. Un fallo conserva la carga para reintentar. Las pulsaciones repetidas quedan bloqueadas durante el trabajo.
 
-El límite es **por sesión de Supabase**, no por persona ni por cuenta de TikTok verificada. Crear otra sesión permite otra identidad de invitado. El tiempo de jornada no prueba que se hayan realizado los tres toques; protege el mínimo de duración, el token y los reintentos. Para una economía con premios o valor habría que añadir controles de identidad y abuso antes de ampliarla.
+La meta original de 50 aportaciones se conserva. Ahora se muestran **150 troncos** como unidad principal y **50 aportaciones de tres troncos** como explicación secundaria. Dos aportaciones equivalen a seis troncos; una entrega no se confunde con un tronco. Los RPC y la contabilidad existentes no se han reescrito ni multiplicado en la base de datos. La primera aportación ya cambia la opacidad del primer tablón.
 
-Pruebas: `npm test` cubre privacidad y propiedad anteriores, RPC de obra, espera, tokens ajenos, caducidad, reintentos, enfriamiento y finalización. `npm run build` comprueba TypeScript y la entrega de producción. El mapa y el panel de actividad se cargan por separado para reducir la descarga inicial.
+La espera de 24 horas es solo para aportar madera, no para jugar. Durante la espera, los botones del muelle y el bosque ofrecen la misión de buscar fauna. También siguen disponibles el barco y la exploración. La jornada expira a los 30 minutos y puede reiniciarse. Las recogidas completadas se conservan en sessionStorage de la pestaña; no son aún un inventario de recursos del servidor.
 
-## Personaje y acciones visibles · segunda versión
+## Barco manual
 
-El jugador local aparece con su nick y color de la sesión propietaria; sin un habitante vinculado, se llama Anónimo. No se mueve la parcela de ningún vecino. Cada recogida dura 5,5 s: camina al árbol, mueve el hacha y produce astillas. El tronco se añade al terminar, con bloqueo de pulsaciones repetidas. La carga visible viaja al muelle durante 9 s; se vacía únicamente después de la confirmación de finish_harbor_work. Los fallos conservan la carga para reintentar. La cámara acompaña al personaje. El estado de jornada y los troncos terminados se recuerdan en sessionStorage de esta pestaña; si se corta una animación, esa recogida no se acredita. La carga no es todavía un inventario persistente del servidor. La confirmación de entrega mantiene las garantías descritas arriba.
+No hay paseo automático ni reloj de travesía en el juego. El barco se mueve mientras se mantiene una dirección y se detiene al soltarla. No puede entrar en tierra. Si está lejos, el botón de embarque ordena caminar hasta su costa por una ruta válida. Solo se puede embarcar cerca del barco. Se puede desembarcar junto a cualquier costa con suelo accesible en un radio de 85 unidades; en mar abierto se explica por qué no se puede bajar. El barco se queda en el lugar del desembarque.
 
-La vuelta del barco recorre un polígono exterior al archipiélago en un minuto. Los animales se muestran al 65–70 % de su tamaño anterior. El detalle de hierba es vectorial al acercar: no se afirma haber aumentado la resolución de la imagen de terreno. No hay sincronización multijugador de posiciones: cada visitante ve su propio personaje en acción, mientras que el progreso del muelle sí es compartido.
+La posición del jugador, el barco y el modo a bordo se recuerdan en localStorage de ese navegador. Recargar a bordo conserva el modo de navegación. Es movimiento individual, no sincronización multijugador de posiciones.
 
-Siguiente fase propuesta, aún sin implementar: inventario de recursos y oro persistente con operaciones atómicas en servidor, puesto de venta, recetas de casas y misiones. Oro ficticio sin valor económico. Evitar una economía basada en contadores del navegador.
+## Misión de fauna e inventario
+
+Hay seis especies ocultas, dos en islotes. Se revelan al acercarse y se registran al entrar en un radio de 29 unidades. Mirar el mapa o acercar la cámara no descubre animales. El inventario se acredita después de la respuesta del servidor y se puede consultar en la pestaña Fauna. Los fallos de conexión se muestran y se reintentan sin duplicar la especie.
+
+Migración adicional **ya aplicada**: `202611090002_animal_inventory.sql`. Crea una tabla privada con RLS y dos RPC: `adventure_inventory` y `discover_animal`. Cada sesión solo recibe sus propias especies; las cuentas anónimas sin sesión reciben una lista vacía. La clave (sesión, especie) impide duplicados. La lista de códigos válidos se comprueba en servidor. Cambiar de sesión invalida las respuestas pendientes y recarga su inventario. No se exponen identificadores de acceso ni correos.
+
+Todavía no hay uso económico de esos descubrimientos. El servidor guarda especies y valida sus códigos, pero no simula la posición del jugador: antes de asignar recompensas de una economía futura se necesita validación de movimiento y acciones en servidor. La madera mantiene sus garantías anteriores de token, duración mínima, jornada diaria, caducidad y reintentos; no prueba cada golpe del hacha. El límite diario es por sesión de Supabase, no por persona o cuenta de TikTok verificada.
+
+## Verificación
+
+`npm test` cubre rutas alrededor del puesto, paso por suelo válido, colisiones, parada, velocidades a 60 y 120 Hz, embarque, costas distintas, recuperación a bordo, inventarios separados, permisos, reintentos y los casos anteriores de propiedad y aportaciones. `npm run build` comprueba TypeScript y producción. Evidencias y lectura de preservación de residentes: `../proyecto/juego_manual/`. No repetir las migraciones ya aplicadas.

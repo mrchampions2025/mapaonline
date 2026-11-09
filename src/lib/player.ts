@@ -1,14 +1,17 @@
+import { pathPosition } from "./navigation.ts";
 export const HARBOR = { x: 1050, y: 1265 },
   FOREST = { x: 565, y: 1030 },
   SHIP = { x: 1200, y: 1390 };
 export type Point = { x: number; y: number };
 export type PlayerAction = {
-  kind: "idle" | "chop" | "deliver";
+  kind: "idle" | "chop" | "deliver" | "walk";
   from: Point;
   to: Point;
   started: number;
   duration: number;
   logs: number;
+  path?: Point[];
+  walkDuration?: number;
 };
 export const TREES: Point[] = [
   { x: 545, y: 1015 },
@@ -58,15 +61,23 @@ export function shipPosition(started: number, now: number, offset = 0) {
 export function playerPose(action: PlayerAction, now: number) {
   const elapsed = Math.max(0, now - action.started),
     walk =
-      action.kind === "deliver"
-        ? action.duration * 0.85
-        : action.kind === "chop"
-          ? action.duration * 0.45
-          : 0;
+      action.walkDuration ??
+      (action.kind === "walk"
+        ? action.duration
+        : action.kind === "deliver"
+          ? action.duration * 0.85
+          : action.kind === "chop"
+            ? action.duration * 0.45
+            : 0);
   const t = walk ? Math.min(1, elapsed / walk) : 1;
+  const position = action.path?.length
+    ? pathPosition(action.path, t)
+    : {
+        x: action.from.x + (action.to.x - action.from.x) * t,
+        y: action.from.y + (action.to.y - action.from.y) * t,
+      };
   return {
-    x: action.from.x + (action.to.x - action.from.x) * t,
-    y: action.from.y + (action.to.y - action.from.y) * t,
+    ...position,
     walking: t < 1,
     chopping: action.kind === "chop" && t === 1 && elapsed < action.duration,
     unloading: action.kind === "deliver" && t === 1,
