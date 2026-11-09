@@ -6,6 +6,9 @@ import { AVATARS, parcelPosition } from "../lib/world.ts";
 import { CAPITAL_ZONES, drawCapitalZones } from "../lib/zones.ts";
 import { FIRST_MARKET, NATION } from "../lib/nation.ts";
 import { drawMarket } from "../lib/market.ts";
+import { drawHarbor } from "../lib/harbor-art.ts";
+import { HARBOR, SHIP, FOREST } from "../lib/harbor.ts";
+import type { Activity } from "./HarborGame.tsx";
 type Props = {
   districts: District[];
   residents: Resident[];
@@ -16,6 +19,13 @@ type Props = {
   onSelect: (r: Resident | null) => void;
   onPoint: (x: number, y: number) => void;
   onBounds: (b: Bounds) => void;
+  gameMode?: boolean;
+  activityOpen?: boolean;
+  destination?: { x: number; y: number; zoom: number; nonce: number } | null;
+  deliveries?: number;
+  voyage?: boolean;
+  shipOffset?: number;
+  onActivity?: (a: Activity) => void;
 };
 type Camera = { x: number; y: number; zoom: number };
 const initial: Camera = { x: 800, y: 1080, zoom: 1 };
@@ -30,6 +40,12 @@ export function Atlas(props: Props) {
     y: number;
     cam: Camera;
     moved: boolean;
+  } | null>(null);
+  const pointers = useRef(new Map<number, { x: number; y: number }>());
+  const pinch = useRef<{
+    distance: number;
+    cam: Camera;
+    anchor: { x: number; y: number };
   } | null>(null);
   const [triSprite, setTriSprite] = useState<HTMLImageElement | null>(null);
   const [animalSprites, setAnimalSprites] = useState<AnimalSprites>({});
@@ -62,6 +78,8 @@ export function Atlas(props: Props) {
   }, []);
   const fit = Math.min(size.w / 1450, size.h / 850),
     scale = fit * cam.zoom;
+  const centerY =
+    props.gameMode && props.activityOpen ? size.h * 0.28 : size.h / 2;
   const activeZone = CAPITAL_ZONES.find(
     (z) => cam.zoom >= 2 && Math.hypot(cam.x - z.x, cam.y - z.y) < 2,
   );
@@ -69,13 +87,13 @@ export function Atlas(props: Props) {
   function screen(x: number, y: number) {
     return {
       x: (x - cam.x) * scale + size.w / 2,
-      y: (y - cam.y) * scale + size.h / 2,
+      y: (y - cam.y) * scale + centerY,
     };
   }
   function world(x: number, y: number) {
     return {
       x: (x - size.w / 2) / scale + cam.x,
-      y: (y - size.h / 2) / scale + cam.y,
+      y: (y - centerY) / scale + cam.y,
     };
   }
   function zoom(delta: number) {
@@ -104,17 +122,29 @@ export function Atlas(props: Props) {
     }
   }, [props.focus]);
   useEffect(() => {
+    if (props.destination)
+      setCam({
+        x: props.destination.x,
+        y: props.destination.y,
+        zoom: props.destination.zoom,
+      });
+  }, [props.destination]);
+  useEffect(() => {
+    if (props.gameMode && !props.focus && !props.destination)
+      setCam({ ...initial, zoom: window.innerWidth < 700 ? 1.6 : 1 });
+  }, [props.gameMode]);
+  useEffect(() => {
     const timeout = setTimeout(() => {
       props.onBounds({
         left: cam.x - size.w / 2 / scale,
-        top: cam.y - size.h / 2 / scale,
+        top: cam.y - centerY / scale,
         right: cam.x + size.w / 2 / scale,
-        bottom: cam.y + size.h / 2 / scale,
+        bottom: cam.y + (size.h - centerY) / scale,
         zoom: cam.zoom,
       });
     }, 180);
     return () => clearTimeout(timeout);
-  }, [cam, size, scale, props.onBounds]);
+  }, [cam, size, scale, centerY, props.onBounds]);
   useEffect(() => {
     const el = canvas.current;
     if (!el) return;
@@ -158,7 +188,12 @@ export function Atlas(props: Props) {
       );
       for (const obj of props.objects) {
         const p = screen(obj.x, obj.y);
-        if (p.x < -200 || p.x > size.w + 200 || p.y < -200 || p.y > size.h + 200)
+        if (
+          p.x < -200 ||
+          p.x > size.w + 200 ||
+          p.y < -200 ||
+          p.y > size.h + 200
+        )
           continue;
         if (obj.id === FIRST_MARKET.id) {
           continue;
@@ -244,9 +279,9 @@ export function Atlas(props: Props) {
             ctx.font = "bold 12px system-ui";
             const width = ctx.measureText(label).width + 20;
             ctx.fillStyle = "#071d2c";
-            ctx.fillRect(p.x-width/2,p.y+20,width,25);
+            ctx.fillRect(p.x - width / 2, p.y + 20, width, 25);
             ctx.fillStyle = "#70e0c1";
-            ctx.fillText(label,p.x,p.y+37);
+            ctx.fillText(label, p.x, p.y + 37);
           }
         }
       } else {
@@ -311,10 +346,29 @@ export function Atlas(props: Props) {
       }
       if (market) {
         const p = screen(market.x, market.y);
-        if (p.x > -100 * scale && p.x < size.w + 100 * scale &&
-            p.y > -100 * scale && p.y < size.h + 100 * scale)
-          drawMarket(ctx,p.x,p.y,scale,reducedMotion.matches ? 0 : now / 1000);
+        if (
+          p.x > -100 * scale &&
+          p.x < size.w + 100 * scale &&
+          p.y > -100 * scale &&
+          p.y < size.h + 100 * scale
+        )
+          drawMarket(
+            ctx,
+            p.x,
+            p.y,
+            scale,
+            reducedMotion.matches ? 0 : now / 1000,
+          );
       }
+      drawHarbor(
+        ctx,
+        screen,
+        scale,
+        reducedMotion.matches ? 0 : now / 1000,
+        props.deliveries ?? 0,
+        !!props.voyage,
+        props.shipOffset ?? 0,
+      );
       drawCapitalZones(ctx, screen, size.w, size.h);
     }
     function animate(now: number) {
@@ -338,128 +392,258 @@ export function Atlas(props: Props) {
     props.focus,
     triSprite,
     animalSprites,
+    props.deliveries,
+    props.voyage,
+    props.shipOffset,
+    centerY,
   ]);
   return (
     <>
-    <nav className="zone-navigation" aria-label="Ir a las zonas del mapa">
-      {CAPITAL_ZONES.map((zone) => (
-        <button key={zone.id} aria-pressed={activeZone?.id === zone.id}
-          onClick={() => setCam({ x: zone.x, y: zone.y, zoom: 3.5 })}>
-          <b style={{ color: zone.color }}>{zone.id}</b>
-          <span>{zone.id === "A" ? "Capital" : `Zona ${zone.id}`} · {zone.name}</span>
-          <span aria-hidden="true">↗</span>
-        </button>
-      ))}
-      {market && <button className="market-jump" onClick={() => setCam({x:market.x,y:market.y-18,zoom:5.5})}>
-        <b>🥔</b><span>Ver Patatas de @maravaf</span><span aria-hidden="true">↗</span>
-      </button>}
-    </nav>
-    <div className={"atlas " + (props.editing ? "editing" : "")} ref={box}>
-      <canvas
-        ref={canvas}
-        tabIndex={0}
-        aria-label={`Mapa de ${NATION.name}. Arrastra para explorar. Usa los controles para acercarte y la búsqueda para encontrar habitantes.`}
-        onKeyDown={(e) => {
-          const directions: Record<string, [number, number]> = {
-            ArrowLeft: [-70, 0],
-            ArrowRight: [70, 0],
-            ArrowUp: [0, -70],
-            ArrowDown: [0, 70],
-          };
-          if (directions[e.key]) {
-            e.preventDefault();
-            const [x, y] = directions[e.key];
-            setCam((c) => ({ ...c, x: c.x + x / scale, y: c.y + y / scale }));
-          }
-          if (e.key === "+" || e.key === "=") zoom(1.4);
-          if (e.key === "-") zoom(1 / 1.4);
-        }}
-        onPointerDown={(e) => {
-          e.currentTarget.setPointerCapture(e.pointerId);
-          drag.current = {
-            x: e.clientX,
-            y: e.clientY,
-            cam: { ...cam },
-            moved: false,
-          };
-        }}
-        onPointerMove={(e) => {
-          const d = drag.current;
-          if (!d) return;
-          const dx = e.clientX - d.x,
-            dy = e.clientY - d.y;
-          if (Math.abs(dx) + Math.abs(dy) > 5) d.moved = true;
-          if (d.moved)
-            setCam({
-              ...d.cam,
-              x: Math.max(0, Math.min(1600, d.cam.x - dx / scale)),
-              y: Math.max(400, Math.min(1800, d.cam.y - dy / scale)),
+      <nav className="zone-navigation" aria-label="Ir a las zonas del mapa">
+        {CAPITAL_ZONES.map((zone) => (
+          <button
+            key={zone.id}
+            aria-pressed={activeZone?.id === zone.id}
+            onClick={() => setCam({ x: zone.x, y: zone.y, zoom: 3.5 })}
+          >
+            <b style={{ color: zone.color }}>{zone.id}</b>
+            <span>
+              {zone.id === "A" ? "Capital" : `Zona ${zone.id}`} · {zone.name}
+            </span>
+            <span aria-hidden="true">↗</span>
+          </button>
+        ))}
+        {market && (
+          <button
+            className="market-jump"
+            onClick={() => setCam({ x: market.x, y: market.y - 18, zoom: 5.5 })}
+          >
+            <b>🥔</b>
+            <span>Ver Patatas de @maravaf</span>
+            <span aria-hidden="true">↗</span>
+          </button>
+        )}
+      </nav>
+      <div className={"atlas " + (props.editing ? "editing" : "")} ref={box}>
+        <canvas
+          ref={canvas}
+          tabIndex={0}
+          aria-label={`Mapa de ${NATION.name}. Arrastra para explorar. Usa los controles para acercarte y la búsqueda para encontrar habitantes.`}
+          onKeyDown={(e) => {
+            const directions: Record<string, [number, number]> = {
+              ArrowLeft: [-70, 0],
+              ArrowRight: [70, 0],
+              ArrowUp: [0, -70],
+              ArrowDown: [0, 70],
+            };
+            if (directions[e.key]) {
+              e.preventDefault();
+              const [x, y] = directions[e.key];
+              setCam((c) => ({ ...c, x: c.x + x / scale, y: c.y + y / scale }));
+            }
+            if (e.key === "+" || e.key === "=") zoom(1.4);
+            if (e.key === "-") zoom(1 / 1.4);
+          }}
+          onPointerDown={(e) => {
+            e.currentTarget.setPointerCapture(e.pointerId);
+            pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+            if (pointers.current.size === 2) {
+              const [a, b] = [...pointers.current.values()];
+              const rect = e.currentTarget.getBoundingClientRect();
+              pinch.current = {
+                distance: Math.max(1, Math.hypot(a.x - b.x, a.y - b.y)),
+                cam: { ...cam },
+                anchor: world(
+                  (a.x + b.x) / 2 - rect.left,
+                  (a.y + b.y) / 2 - rect.top,
+                ),
+              };
+              drag.current = null;
+              return;
+            }
+            drag.current = {
+              x: e.clientX,
+              y: e.clientY,
+              cam: { ...cam },
+              moved: false,
+            };
+          }}
+          onPointerMove={(e) => {
+            if (!pointers.current.has(e.pointerId)) return;
+            pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+            if (pinch.current && pointers.current.size >= 2) {
+              const [a, b] = [...pointers.current.values()];
+              const g = pinch.current;
+              const z = Math.max(
+                1,
+                Math.min(
+                  12,
+                  (g.cam.zoom * Math.hypot(a.x - b.x, a.y - b.y)) / g.distance,
+                ),
+              );
+              const rect = e.currentTarget.getBoundingClientRect();
+              setCam({
+                zoom: z,
+                x: Math.max(
+                  0,
+                  Math.min(
+                    1600,
+                    g.anchor.x -
+                      ((a.x + b.x) / 2 - rect.left - size.w / 2) / (fit * z),
+                  ),
+                ),
+                y: Math.max(
+                  400,
+                  Math.min(
+                    1800,
+                    g.anchor.y -
+                      ((a.y + b.y) / 2 - rect.top - centerY) / (fit * z),
+                  ),
+                ),
+              });
+              return;
+            }
+            const d = drag.current;
+            if (!d) return;
+            const dx = e.clientX - d.x,
+              dy = e.clientY - d.y;
+            if (Math.abs(dx) + Math.abs(dy) > 5) d.moved = true;
+            if (d.moved)
+              setCam({
+                ...d.cam,
+                x: Math.max(0, Math.min(1600, d.cam.x - dx / scale)),
+                y: Math.max(400, Math.min(1800, d.cam.y - dy / scale)),
+              });
+          }}
+          onPointerCancel={() => {
+            drag.current = null;
+            pinch.current = null;
+            pointers.current.clear();
+          }}
+          onPointerUp={(e) => {
+            pointers.current.delete(e.pointerId);
+            if (pinch.current) {
+              pinch.current = null;
+              const remaining = [...pointers.current.values()][0];
+              drag.current = remaining
+                ? {
+                    x: remaining.x,
+                    y: remaining.y,
+                    cam: { ...cam },
+                    moved: true,
+                  }
+                : null;
+              return;
+            }
+            const d = drag.current;
+            drag.current = null;
+            if (!d || d.moved) return;
+            const rect = e.currentTarget.getBoundingClientRect(),
+              p = world(e.clientX - rect.left, e.clientY - rect.top);
+            if (props.editing) {
+              props.onPoint(Math.round(p.x), Math.round(p.y));
+              return;
+            }
+            for (const [point, action] of [
+              [SHIP, "ship"],
+              [HARBOR, "dock"],
+              [FOREST, "wood"],
+            ] as const) {
+              if (
+                Math.hypot(p.x - point.x, p.y - point.y) * scale <
+                Math.max(24, 45 * scale)
+              ) {
+                props.onActivity?.(action);
+                return;
+              }
+            }
+            const zone = CAPITAL_ZONES.find((z) => {
+              const dx = (p.x - z.x) * scale,
+                dy = (p.y - z.y) * scale;
+              return (
+                Math.hypot(dx, dy + 36) < 22 ||
+                (Math.abs(dx) < 90 && dy > 12 && dy < 38)
+              );
             });
-        }}
-        onPointerCancel={() => (drag.current = null)}
-        onPointerUp={(e) => {
-          const d = drag.current;
-          drag.current = null;
-          if (!d || d.moved) return;
-          const rect = e.currentTarget.getBoundingClientRect(),
-            p = world(e.clientX - rect.left, e.clientY - rect.top);
-          if (props.editing) {
-            props.onPoint(Math.round(p.x), Math.round(p.y));
-            return;
-          }
-          const zone = CAPITAL_ZONES.find((z) => {
-            const dx = (p.x - z.x) * scale, dy = (p.y - z.y) * scale;
-            return Math.hypot(dx, dy + 36) < 22 || (Math.abs(dx) < 90 && dy > 12 && dy < 38);
-          });
-          if (zone) {
-            setCam({ x: zone.x, y: zone.y, zoom: 3.5 });
-            return;
-          }
-          if (cam.zoom < 2) {
-            const nearest = props.districts.reduce<District | null>(
-              (a, b) =>
-                !a ||
-                Math.hypot(b.x - p.x, b.y - p.y) <
-                  Math.hypot(a.x - p.x, a.y - p.y)
-                  ? b
-                  : a,
-              null,
-            );
-            if (nearest) setCam({ x: nearest.x, y: nearest.y, zoom: 5 });
-            return;
-          }
-          const nearest = props.residents.find((r) => {
-            const pos = parcelPosition(r.parcel_id);
-            return Math.hypot(pos.x - p.x, pos.y - p.y) < 15 / scale;
-          });
-          props.onSelect(nearest || null);
-        }}
-        onDoubleClick={() => zoom(1.6)}
-      />
-      <div className="atlas-label">
-        <span className="live-dot" /> ARCHIPIÉLAGO 01 <span>/</span>{" "}
-        {cam.zoom < 2 ? "VISTA GENERAL" : activeZone ? `ZONA ${activeZone.id} · ${activeZone.name.toLocaleUpperCase("es")}` : "EXPLORANDO EL ATLAS"}
+            if (zone) {
+              setCam({ x: zone.x, y: zone.y, zoom: 3.5 });
+              return;
+            }
+            if (cam.zoom < 2) {
+              const nearest = props.districts.reduce<District | null>(
+                (a, b) =>
+                  !a ||
+                  Math.hypot(b.x - p.x, b.y - p.y) <
+                    Math.hypot(a.x - p.x, a.y - p.y)
+                    ? b
+                    : a,
+                null,
+              );
+              if (nearest) setCam({ x: nearest.x, y: nearest.y, zoom: 5 });
+              return;
+            }
+            const nearest = props.residents.find((r) => {
+              const pos = parcelPosition(r.parcel_id);
+              return Math.hypot(pos.x - p.x, pos.y - p.y) < 15 / scale;
+            });
+            props.onSelect(nearest || null);
+          }}
+          onDoubleClick={() => zoom(1.6)}
+        />
+        <div className="atlas-label">
+          <span className="live-dot" /> ARCHIPIÉLAGO 01 <span>/</span>{" "}
+          {cam.zoom < 2
+            ? "VISTA GENERAL"
+            : activeZone
+              ? `ZONA ${activeZone.id} · ${activeZone.name.toLocaleUpperCase("es")}`
+              : "EXPLORANDO EL ATLAS"}
+        </div>
+        <div className="map-controls">
+          <button aria-label="Acercar mapa" onClick={() => zoom(1.5)}>
+            +
+          </button>
+          <button aria-label="Alejar mapa" onClick={() => zoom(1 / 1.5)}>
+            −
+          </button>
+          <button aria-label="Centrar mapa" onClick={() => setCam(initial)}>
+            ⌖
+          </button>
+        </div>
+        {props.gameMode && (
+          <nav className="map-dpad" aria-label="Mover el mapa">
+            {(
+              [
+                ["↑", 0, -1, "norte"],
+                ["←", -1, 0, "oeste"],
+                ["↓", 0, 1, "sur"],
+                ["→", 1, 0, "este"],
+              ] as const
+            ).map(([label, x, y, name]) => (
+              <button
+                key={name}
+                aria-label={`Mover mapa al ${name}`}
+                onClick={() =>
+                  setCam((c) => ({
+                    ...c,
+                    x: Math.max(0, Math.min(1600, c.x + (x * 100) / scale)),
+                    y: Math.max(400, Math.min(1800, c.y + (y * 100) / scale)),
+                  }))
+                }
+              >
+                {label}
+              </button>
+            ))}
+          </nav>
+        )}
+        <div className="map-caption">
+          {props.editing
+            ? "Pulsa en el mapa para colocar una construcción."
+            : cam.zoom < 2
+              ? "Pulsa en una zona para descubrir sus parcelas."
+              : "Arrastra para explorar · Busca tu nick para encontrar tu lugar."}
+        </div>
+        <span className="zoom-badge">{cam.zoom.toFixed(1)}×</span>
       </div>
-      <div className="map-controls">
-        <button aria-label="Acercar mapa" onClick={() => zoom(1.5)}>
-          +
-        </button>
-        <button aria-label="Alejar mapa" onClick={() => zoom(1 / 1.5)}>
-          −
-        </button>
-        <button aria-label="Centrar mapa" onClick={() => setCam(initial)}>
-          ⌖
-        </button>
-      </div>
-      <div className="map-caption">
-        {props.editing
-          ? "Pulsa en el mapa para colocar una construcción."
-          : cam.zoom < 2
-            ? "Pulsa en una zona para descubrir sus parcelas."
-            : "Arrastra para explorar · Busca tu nick para encontrar tu lugar."}
-      </div>
-      <span className="zoom-badge">{cam.zoom.toFixed(1)}×</span>
-    </div>
     </>
   );
 }

@@ -19,10 +19,10 @@ export function FlagChallenge() {
     <div className="coastal-challenge">
       <span className="eyebrow">6 PLAZAS DEL RETO COSTERO</span>
       <h3>¿Quieres tu casa frente al mar?</h3>
-      <p>Cuando se publique el vídeo del reto, comenta tu número de bandera, oficio y nick. Ejemplo:</p>
+      <p>Comenta en el vídeo del reto tu número de bandera, oficio y nick. Ejemplo:</p>
       <p className="comment-example">Bandera 2 · Tabernero · @tu_usuario</p>
       <p>Los seis comentarios válidos con más me gusta al cierre ganarán una parcela costera simbólica, una por cuenta. El reto y la elección de bandera cierran <strong>24 horas después de publicar el capítulo</strong>.</p>
-      <a href="https://www.tiktok.com/@paisde.seguidores" target="_blank" rel="noopener noreferrer">Ir al TikTok oficial ↗</a>
+      <a href="https://www.tiktok.com/@paisde.seguidores/video/7706121662197959958" target="_blank" rel="noopener noreferrer">Participar en el vídeo del reto ↗</a>
       <details>
         <summary>Cómo se cuentan los votos y las seis plazas</summary>
         <ul>

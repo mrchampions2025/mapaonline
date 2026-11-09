@@ -1,9 +1,31 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  lazy,
+  Suspense,
+} from "react";
 import type { Session } from "@supabase/supabase-js";
-import { Atlas } from "./components/Atlas.tsx";
+const Atlas = lazy(() =>
+  import("./components/Atlas.tsx").then((m) => ({ default: m.Atlas })),
+);
 import { Membership } from "./components/Membership.tsx";
 import { CommunityRequests } from "./components/CommunityRequests.tsx";
 import { FlagChallenge } from "./components/FlagChallenge.tsx";
+import type { Activity } from "./components/HarborGame.tsx";
+const HarborGame = lazy(() =>
+  import("./components/HarborGame.tsx").then((m) => ({
+    default: m.HarborGame,
+  })),
+);
+import {
+  harborStatus,
+  HARBOR,
+  FOREST,
+  SHIP,
+  type HarborStatus,
+} from "./lib/harbor.ts";
 import * as api from "./lib/api.ts";
 import {
   AVATARS,
@@ -22,6 +44,93 @@ const emptyDistricts: District[] = DISTRICT_NAMES.map((name, i) => ({
   capacity: 1024,
 }));
 export function App() {
+  const [playing, setPlaying] = useState(location.hash === "#jugar");
+  const [activity, setActivity] = useState<Activity>("explore");
+  const [harbor, setHarbor] = useState<HarborStatus | null>(null),
+    [harborError, setHarborError] = useState("");
+  const [voyage, setVoyage] = useState(false);
+  const [shipOffset, setShipOffset] = useState(0);
+  const steerShip = useCallback(
+    (d: number) => setShipOffset((x) => Math.max(-60, Math.min(60, x + d))),
+    [],
+  );
+  const [destination, setDestination] = useState<{
+    x: number;
+    y: number;
+    zoom: number;
+    nonce: number;
+  } | null>(null);
+  const gameFrame = useRef<HTMLDivElement>(null),
+    returnFocus = useRef<HTMLElement | null>(null);
+  const refreshHarbor = useCallback(async () => {
+    try {
+      setHarbor(await harborStatus());
+      setHarborError("");
+    } catch {
+      setHarborError(
+        "No se ha podido conectar con la obra. Reintenta en unos momentos.",
+      );
+    }
+  }, []);
+  const visitActivity = useCallback((a: Activity) => {
+    setActivity(a);
+    const target =
+      a === "wood"
+        ? FOREST
+        : a === "dock"
+          ? HARBOR
+          : a === "ship"
+            ? SHIP
+            : null;
+    if (target)
+      setDestination({
+        ...target,
+        zoom: a === "ship" ? 4 : 4.5,
+        nonce: Date.now(),
+      });
+  }, []);
+  function openGame(r?: Resident) {
+    setMessage("");
+    setError("");
+    returnFocus.current = document.activeElement as HTMLElement;
+    setPlaying(true);
+    if (location.hash !== "#jugar") history.pushState(null, "", "#jugar");
+    if (r) {
+      setFocus({ ...r });
+      setSelected(r);
+    }
+  }
+  function closeGame() {
+    setPlaying(false);
+    if (location.hash === "#jugar")
+      history.replaceState(null, "", location.pathname + location.search);
+    requestAnimationFrame(() => returnFocus.current?.focus());
+  }
+  useEffect(() => {
+    void refreshHarbor();
+    const timer = setInterval(() => {
+      if (!document.hidden) void refreshHarbor();
+    }, 30000);
+    return () => clearInterval(timer);
+  }, [refreshHarbor]);
+  useEffect(() => {
+    const pop = () => setPlaying(location.hash === "#jugar");
+    window.addEventListener("popstate", pop);
+    window.addEventListener("hashchange", pop);
+    return () => {
+      window.removeEventListener("popstate", pop);
+      window.removeEventListener("hashchange", pop);
+    };
+  }, []);
+  useEffect(() => {
+    if (!playing) return;
+    const old = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    gameFrame.current?.querySelector<HTMLButtonElement>("button")?.focus();
+    return () => {
+      document.body.style.overflow = old;
+    };
+  }, [playing]);
   const [session, setSession] = useState<Session | null>(null),
     [loadingSession, setLoadingSession] = useState(api.configured);
   const [districts, setDistricts] = useState(emptyDistricts),
@@ -55,7 +164,11 @@ export function App() {
   const sync = useCallback(async () => {
     if (!api.configured) return;
     try {
-      const [d, o, roster] = await Promise.all([api.districts(), api.objects(), api.directory()]);
+      const [d, o, roster] = await Promise.all([
+        api.districts(),
+        api.objects(),
+        api.directory(),
+      ]);
       setDistricts(d);
       setObjects(o);
       setDirectory(roster);
@@ -175,9 +288,7 @@ export function App() {
     document.getElementById("member-nick")?.focus({ preventScroll: true });
   }
   function showMyPlace(resident: Resident) {
-    setFocus({ ...resident });
-    setSelected(resident);
-    requestAnimationFrame(() => scrollToSection("atlas-map"));
+    openGame(resident);
   }
   const total = districts.reduce((n, d) => n + Number(d.residents), 0),
     capacity = districts.reduce((n, d) => n + Number(d.capacity), 0);
@@ -195,6 +306,9 @@ export function App() {
           </span>
         </a>
         <nav>
+          <button className="header-play" onClick={() => openGame()}>
+            Ver mapa / Jugar
+          </button>
           <a href={api.tiktokUrl} target="_blank" rel="noopener noreferrer">
             TikTok oficial <span>↗</span>
           </a>
@@ -205,7 +319,9 @@ export function App() {
           >
             {mine ? "Mi parcela ↗" : "Crear mi lugar ↗"}
           </button>
-          <a className="pill" href="#bandera">BANDERA Y COSTA ↘</a>
+          <a className="pill" href="#bandera">
+            BANDERA Y COSTA ↘
+          </a>
         </nav>
       </header>
       {!api.configured ? (
@@ -231,6 +347,14 @@ export function App() {
             <div className="sidebar-label">
               {mine ? "TU PASAPORTE FUNDADOR" : "TU PARCELA EMPIEZA AQUÍ"}{" "}
               <span>↘</span>
+            </div>
+            <div className="play-entry">
+              <button className="primary" onClick={() => openGame()}>
+                Ver mapa / Jugar →
+              </button>
+              <p>
+                Explora, recoge madera y navega. Puedes entrar como visitante.
+              </p>
             </div>
             <Membership
               session={session}
@@ -468,38 +592,211 @@ export function App() {
                   : "Modo vista previa"}
             </span>
           </div>
-          <Atlas
-            districts={districts}
-            residents={shownResidents}
-            objects={objects}
-            focus={focus}
-            selected={selected}
-            editing={editing}
-            onSelect={setSelected}
-            onPoint={(x, y) => setPoint({ x, y })}
-            onBounds={loadBounds}
-          />
-          <section className="nation-news" aria-label="Lo que está pasando en Hispania">
+          <div
+            ref={gameFrame}
+            className={playing ? "game-frame playing" : "game-frame"}
+            role={playing ? "dialog" : undefined}
+            aria-modal={playing || undefined}
+            aria-label={playing ? "Jugar en Hispania" : undefined}
+            onKeyDown={(e) => {
+              if (!playing) return;
+              if (e.key === "Escape") {
+                e.preventDefault();
+                closeGame();
+              }
+              if (e.key === "Tab") {
+                const nodes = [
+                  ...e.currentTarget.querySelectorAll<HTMLElement>(
+                    "button:not(:disabled),input,canvas",
+                  ),
+                ].filter((n) => n.getClientRects().length);
+                const first = nodes[0],
+                  last = nodes.at(-1);
+                if (e.shiftKey && document.activeElement === first) {
+                  e.preventDefault();
+                  last?.focus();
+                } else if (!e.shiftKey && document.activeElement === last) {
+                  e.preventDefault();
+                  first?.focus();
+                }
+              }
+            }}
+          >
+            {playing && (
+              <header className="game-topbar">
+                <button onClick={closeGame} aria-label="Salir del modo juego">
+                  ← Volver
+                </button>
+                <div>
+                  <strong>HISPANIA</strong>
+                  <small>
+                    {connected ? `${total} vecinos` : "Conectando…"}
+                  </small>
+                </div>
+                <button
+                  onClick={() => {
+                    closeGame();
+                    openMembership();
+                  }}
+                >
+                  {mine ? "Mi lugar" : "Mi nick"}
+                </button>
+              </header>
+            )}
+            {playing && (
+              <form
+                className="game-search"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  void act(async () => {
+                    const r = await api.search(normalizeNick(query));
+                    if (r) {
+                      setFocus({ ...r });
+                      setSelected(r);
+                      setActivity("explore");
+                    } else setMessage("No encontramos ese nick.");
+                  });
+                }}
+              >
+                <input
+                  aria-label="Buscar nick en el juego"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Busca tu nick o el de un vecino"
+                  maxLength={25}
+                />
+                <button disabled={busy}>Buscar</button>
+                {(message || error) && (
+                  <span role="status">{message || error}</span>
+                )}
+              </form>
+            )}
+            <Suspense
+              fallback={
+                <div className="atlas game-loading" role="status">
+                  Cargando el mapa…
+                </div>
+              }
+            >
+              <Atlas
+                districts={districts}
+                residents={shownResidents}
+                objects={objects}
+                focus={focus}
+                selected={selected}
+                editing={editing}
+                onSelect={setSelected}
+                onPoint={(x, y) => setPoint({ x, y })}
+                onBounds={loadBounds}
+                gameMode={playing}
+                activityOpen={activity !== "explore"}
+                destination={destination}
+                deliveries={harbor?.deliveries ?? 0}
+                voyage={voyage}
+                shipOffset={shipOffset}
+                onActivity={(a) => {
+                  if (!playing) openGame();
+                  visitActivity(a);
+                }}
+              />
+            </Suspense>
+            {playing && selected && (
+              <div className="game-resident">
+                <strong>@{selected.nick}</strong>
+                <span>F-{String(selected.parcel_id).padStart(4, "0")}</span>
+                <button
+                  aria-label="Cerrar vecino seleccionado"
+                  onClick={() => setSelected(null)}
+                >
+                  ×
+                </button>
+              </div>
+            )}
+            {playing && (
+              <Suspense
+                fallback={
+                  <div className="explore-hint" role="status">
+                    Abriendo actividades…
+                  </div>
+                }
+              >
+                <HarborGame
+                  activity={activity}
+                  onActivity={visitActivity}
+                  status={harbor}
+                  error={harborError}
+                  onStatus={setHarbor}
+                  onVoyage={setVoyage}
+                  onSteer={steerShip}
+                  nick={mine?.nick}
+                />
+              </Suspense>
+            )}
+          </div>
+          <section
+            className="nation-news"
+            aria-label="Lo que está pasando en Hispania"
+          >
             <div className="community-counts">
               <span className="eyebrow">NUESTRA COMUNIDAD SIGUE CRECIENDO</span>
-              <p><strong>{TIKTOK_AUDIENCE.followers}</strong> seguidores en TikTok · <strong>{connected ? total : "—"}</strong> vecinos con parcela</p>
-              <small>Seguidores: lectura del {TIKTOK_AUDIENCE.checkedLabel}. El mapa cuenta los nicks incorporados desde TikTok y los registros de la web. Son dos cifras distintas; no se suman.</small>
+              <p>
+                <strong>{TIKTOK_AUDIENCE.followers}</strong> seguidores en
+                TikTok · <strong>{connected ? total : "—"}</strong> vecinos con
+                parcela
+              </p>
+              <small>
+                Seguidores: lectura del {TIKTOK_AUDIENCE.checkedLabel}. El mapa
+                cuenta los nicks incorporados desde TikTok y los registros de la
+                web. Son dos cifras distintas; no se suman.
+              </small>
             </div>
-            <div className="nation-result"><span className="eyebrow">VOTACIÓN FINALIZADA</span>
-              <p><strong>{NATION.name}</strong> ya tiene capital: <strong>{NATION.capital}</strong>.</p>
-              <small>Nombre elegido entre vuestros comentarios · Capital: opción A, {NATION.capitalPollPercent} % en la encuesta comunicada por el creador.</small>
+            <div className="nation-result">
+              <span className="eyebrow">VOTACIÓN FINALIZADA</span>
+              <p>
+                <strong>{NATION.name}</strong> ya tiene capital:{" "}
+                <strong>{NATION.capital}</strong>.
+              </p>
+              <small>
+                Nombre elegido entre vuestros comentarios · Capital: opción A,{" "}
+                {NATION.capitalPollPercent} % en la encuesta comunicada por el
+                creador.
+              </small>
             </div>
-            {objects.some((o) => o.id === FIRST_MARKET.id) && <article className="first-business">
-              <span className="eyebrow">PRIMER NEGOCIO DEL MAPA · CONSTRUIDO</span>
-              <h2>Patatas de @maravaf.</h2>
-              <p>Un comentario se convirtió en este puesto de la capital. Sus capibaras ya te esperan en el mapa.</p>
-              <small>Espacio común de {NATION.capital} · Idea de @maravaf. Tu parcela conserva su lugar.</small>
-            </article>}
+            {objects.some((o) => o.id === FIRST_MARKET.id) && (
+              <article className="first-business">
+                <span className="eyebrow">
+                  PRIMER NEGOCIO DEL MAPA · CONSTRUIDO
+                </span>
+                <h2>Patatas de @maravaf.</h2>
+                <p>
+                  Un comentario se convirtió en este puesto de la capital. Sus
+                  capibaras ya te esperan en el mapa.
+                </p>
+                <small>
+                  Espacio común de {NATION.capital} · Idea de @maravaf. Tu
+                  parcela conserva su lugar.
+                </small>
+              </article>
+            )}
             <div className="community-goal">
               <span className="eyebrow">NUESTRA PRÓXIMA META</span>
-              <p><strong>{connected ? total : "—"}</strong> / {NATION.communityGoal} vecinos</p>
-              <progress value={connected ? Math.min(total,NATION.communityGoal) : 0} max={NATION.communityGoal} aria-label={`Progreso hacia ${NATION.communityGoal} vecinos`} />
-              <small>{connected && total >= NATION.communityGoal ? "¡Meta alcanzada! Seguimos construyendo juntos." : connected ? `Faltan ${Math.max(0,NATION.communityGoal-total)} para llegar a ${NATION.communityGoal}. Invita a tu futuro vecino.` : "Conectando con el mapa."} Las parcelas siguen abiertas.</small>
+              <p>
+                <strong>{connected ? total : "—"}</strong> /{" "}
+                {NATION.communityGoal} vecinos
+              </p>
+              <progress
+                value={connected ? Math.min(total, NATION.communityGoal) : 0}
+                max={NATION.communityGoal}
+                aria-label={`Progreso hacia ${NATION.communityGoal} vecinos`}
+              />
+              <small>
+                {connected && total >= NATION.communityGoal
+                  ? "¡Meta alcanzada! Seguimos construyendo juntos."
+                  : connected
+                    ? `Faltan ${Math.max(0, NATION.communityGoal - total)} para llegar a ${NATION.communityGoal}. Invita a tu futuro vecino.`
+                    : "Conectando con el mapa."}{" "}
+                Las parcelas siguen abiertas.
+              </small>
             </div>
           </section>
           <FlagChallenge />
@@ -519,7 +816,9 @@ export function App() {
                 <strong>@{selected.nick}</strong>
                 <span>
                   Parcela F-{String(selected.parcel_id).padStart(4, "0")} ·
-                  {selected.origin === "comment" ? " Añadido desde TikTok" : " Registro desde la web"}
+                  {selected.origin === "comment"
+                    ? " Añadido desde TikTok"
+                    : " Registro desde la web"}
                   {selected.alias ? ` · ${selected.alias}` : ""}
                 </span>
               </div>
@@ -532,26 +831,61 @@ export function App() {
               </button>
             </div>
           )}
-          <section className="community-directory" aria-label="Vecinos de la comunidad">
+          <section
+            className="community-directory"
+            aria-label="Vecinos de la comunidad"
+          >
             <p className="eyebrow">LA COMUNIDAD YA TIENE NOMBRES</p>
             <h2>Encuentra a tus vecinos.</h2>
-            <p className="muted">Quienes se apuntan en la web y quienes incorporamos desde TikTok comparten este mapa. Pulsa un nick para ver su muñeco y su parcela.</p>
+            <p className="muted">
+              Quienes se apuntan en la web y quienes incorporamos desde TikTok
+              comparten este mapa. Pulsa un nick para ver su muñeco y su
+              parcela.
+            </p>
             <ul>
               {directory.map((r) => (
                 <li key={r.id}>
                   <button onClick={() => showMyPlace(r)}>
-                    <span className="avatar-dot" style={{background: AVATARS[r.avatar].color}} />
-                    <span><strong>@{r.nick}</strong><small>F-{String(r.parcel_id).padStart(4,"0")} · {r.origin === "comment" ? "Desde TikTok" : "Desde la web"}</small></span>
+                    <span
+                      className="avatar-dot"
+                      style={{ background: AVATARS[r.avatar].color }}
+                    />
+                    <span>
+                      <strong>@{r.nick}</strong>
+                      <small>
+                        F-{String(r.parcel_id).padStart(4, "0")} ·{" "}
+                        {r.origin === "comment"
+                          ? "Desde TikTok"
+                          : "Desde la web"}
+                      </small>
+                    </span>
                     <span aria-hidden="true">↗</span>
                   </button>
                 </li>
               ))}
             </ul>
-            {directoryMore && <button className="secondary" disabled={busy} onClick={() => void act(async () => {
-              const more = await api.directory(directory.at(-1)?.parcel_id || 0);
-              setDirectory((previous) => [...previous,...more.filter((r) => !previous.some((p) => p.id === r.id))]);
-              setDirectoryMore(more.length === 100);
-            })}>Ver más vecinos</button>}
+            {directoryMore && (
+              <button
+                className="secondary"
+                disabled={busy}
+                onClick={() =>
+                  void act(async () => {
+                    const more = await api.directory(
+                      directory.at(-1)?.parcel_id || 0,
+                    );
+                    setDirectory((previous) => [
+                      ...previous,
+                      ...more.filter(
+                        (r) => !previous.some((p) => p.id === r.id),
+                      ),
+                    ]);
+                    setDirectoryMore(more.length === 100);
+                  })
+                }
+              >
+                Ver más vecinos
+              </button>
+            )}
           </section>
           <CommunityRequests />
           <div className="below-map">
@@ -590,7 +924,8 @@ export function App() {
       </div>
       <footer id="reglas">
         <div className="footer-brand">
-          {NATION.name.toLocaleUpperCase("es")} <span>Un país hecho por su gente.</span>
+          {NATION.name.toLocaleUpperCase("es")}{" "}
+          <span>Un país hecho por su gente.</span>
         </div>
         <p>
           Parcelas simbólicas, sin propiedad ni valor económico. El nick es
