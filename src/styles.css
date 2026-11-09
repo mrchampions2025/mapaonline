@@ -848,3 +848,19 @@ footer a {
 .community-goal p { font-size: 23px; }
 .community-goal strong { color: var(--gold); }
 .community-goal progress { display: block; width: 100%; height: 13px; accent-color: var(--mint); margin: 14px 0; }
+.flag-challenge { margin: 28px 0; padding: 26px; border: 1px solid #a1844e; border-radius: 18px; background: #0a2836; scroll-margin-top: 24px; }
+.flag-challenge > h2 { font-size: clamp(26px,3vw,40px); line-height: 1.1; margin: 14px 0; }
+.flag-challenge p, .flag-challenge small, .flag-challenge li { line-height: 1.6; color: #b4c8cf; }
+.flag-candidates { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 16px; margin: 24px 0; }
+.flag-candidates article { overflow: hidden; border-radius: 14px; background: #061e2b; border: 1px solid #345965; }
+.flag-candidates img { width: 100%; display: block; aspect-ratio: 20 / 13; object-fit: contain; }
+.flag-candidates h3, .flag-candidates p { margin: 14px; }
+.flag-candidates h3 { font-size: 20px; }
+.flag-candidates h3 span { color: #ffc466; }
+.coastal-challenge { margin: 24px 0 16px; padding: 24px; background: #123545; border: 1px solid #47727f; border-radius: 14px; }
+.coastal-challenge h3 { font-size: 28px; margin: 10px 0; }
+.coastal-challenge .comment-example { font-weight: 800; font-size: 20px; color: #ffc466; padding: 16px; border-radius: 10px; background: #071d2c; overflow-wrap: anywhere; }
+.coastal-challenge a { display: inline-block; padding: 12px 18px; background: #ffc466; color: #071d2c; border-radius: 9px; font-weight: 800; margin: 8px 0 16px; }
+.coastal-challenge summary { cursor: pointer; padding: 12px 0; color: #70e0c1; font-weight: 700; }
+.coastal-challenge li { margin: 9px 0; }
+@media (max-width: 700px) { .flag-candidates { grid-template-columns: 1fr; } .flag-challenge { padding: 18px; } .coastal-challenge { padding: 18px; } }

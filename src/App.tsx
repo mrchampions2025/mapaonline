@@ -3,6 +3,7 @@ import type { Session } from "@supabase/supabase-js";
 import { Atlas } from "./components/Atlas.tsx";
 import { Membership } from "./components/Membership.tsx";
 import { CommunityRequests } from "./components/CommunityRequests.tsx";
+import { FlagChallenge } from "./components/FlagChallenge.tsx";
 import * as api from "./lib/api.ts";
 import {
   AVATARS,
@@ -501,6 +502,7 @@ export function App() {
               <small>{connected && total >= NATION.communityGoal ? "¡Meta alcanzada! Seguimos construyendo juntos." : connected ? `Faltan ${Math.max(0,NATION.communityGoal-total)} para llegar a ${NATION.communityGoal}. Invita a tu futuro vecino.` : "Conectando con el mapa."} Las parcelas siguen abiertas.</small>
             </div>
           </section>
+          <FlagChallenge />
           {mapTruncated && (
             <p className="muted">
               Esta zona tiene muchos vecinos. Acércate más para verlos con
