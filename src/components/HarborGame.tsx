@@ -303,6 +303,7 @@ export function HarborGame({
   }
   function survey() {
     onActivity("wildlife");
+    onPanelOpen(false);
     setFailure("");
     setNotice("");
     s.follow = true;
@@ -508,7 +509,7 @@ export function HarborGame({
                       if (cooling || complete) survey();
                       else {
                         onActivity("wood");
-                        walkTo(s, FOREST);
+                        if (walkTo(s, FOREST)) onPanelOpen(false);
                       }
                     }}
                   >
