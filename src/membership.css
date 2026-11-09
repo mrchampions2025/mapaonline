@@ -122,11 +122,14 @@ aside h2 em {
     display: none;
   }
   .header nav {
-    gap: 0;
+    gap: 6px;
   }
   .header-join {
     font-size: 11px;
     padding: 11px 13px;
+    background: transparent;
+    color: var(--gold);
+    border: 1px solid var(--gold);
   }
   .layout > aside {
     padding: 18px 18px 26px;
