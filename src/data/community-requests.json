@@ -448,5 +448,35 @@
     "nextStep": "La dirección se muestra en la web y en el vídeo",
     "parcel": 48,
     "source": "https://www.tiktok.com/@paisde.seguidores/video/7704811569359768865"
+  },
+  {
+    "id": "P46",
+    "author": "romina.blasiche",
+    "title": "Referencia de personaje enviada en imagen",
+    "group": "Personaje",
+    "status": "Requiere aclaración",
+    "nextStep": "Confirmar si desea personalizar su personaje con la referencia de Hulk",
+    "parcel": 52,
+    "source": "https://www.tiktok.com/@paisde.seguidores/video/7704811569359768865"
+  },
+  {
+    "id": "P47",
+    "author": "user9996398742530",
+    "title": "Preocupación por la cercanía de las viviendas a la costa",
+    "group": "Ubicación",
+    "status": "Preocupación registrada",
+    "nextStep": "Valorar una ubicación retirada del borde al proponer las viviendas",
+    "parcel": 57,
+    "source": "https://www.tiktok.com/@paisde.seguidores/video/7704811569359768865"
+  },
+  {
+    "id": "P48",
+    "author": "i_love_577_",
+    "title": "Muñeco verde",
+    "group": "Personaje",
+    "status": "Aplicado",
+    "nextStep": "Avatar verde verificado; su parcela conserva F-0031",
+    "parcel": 31,
+    "source": "https://www.tiktok.com/@paisde.seguidores/video/7704811569359768865"
   }
 ]
