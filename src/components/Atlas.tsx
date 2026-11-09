@@ -40,6 +40,7 @@ type Props = {
   onActivity?: (a: Activity) => void;
 };
 type Camera = { x: number; y: number; zoom: number };
+const PLAYER_WORLD_SCALE = 0.36;
 const initial: Camera = { x: 800, y: 1080, zoom: 1 };
 const PARCEL_POSITIONS = Array.from({ length: 4096 }, (_, i) =>
   parcelPosition(i + 1),
@@ -181,7 +182,7 @@ export function Atlas(props: Props) {
   }, [props.destination]);
   useEffect(() => {
     if (props.gameMode && !props.focus && !props.destination)
-      setCam({ ...initial, zoom: window.innerWidth < 700 ? 4.5 : 3 });
+      setCam({ ...initial, zoom: window.innerWidth < 700 ? 8 : 3 });
   }, [props.gameMode]);
   useEffect(() => {
     const el = canvas.current;
@@ -512,7 +513,7 @@ export function Atlas(props: Props) {
         drawPlayer(
           ctx,
           screen,
-          state.aboard ? scale * 0.7 : scale,
+          scale * PLAYER_WORLD_SCALE * (state.aboard ? 0.7 : 1),
           actor,
           clock,
           props.playerNick,
@@ -787,7 +788,10 @@ export function Atlas(props: Props) {
             onClick={() => {
               if (props.adventure) {
                 props.adventure.follow = true;
-                setCam((c) => ({ ...c, zoom: 4.5 }));
+                setCam((c) => ({
+                  ...c,
+                  zoom: window.innerWidth < 700 ? 8 : 3,
+                }));
               } else setCam(initial);
             }}
           >

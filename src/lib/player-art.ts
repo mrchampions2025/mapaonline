@@ -81,6 +81,10 @@ export function drawPlayer(
   }
   ctx.restore();
   ctx.save();
+  if (scale < 0.25) {
+    ctx.restore();
+    return;
+  }
   ctx.font = "700 12px system-ui";
   ctx.textAlign = "center";
   const label = nick === "Anónimo" ? nick : "@" + nick;

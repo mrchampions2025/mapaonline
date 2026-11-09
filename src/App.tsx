@@ -1,3 +1,4 @@
+import { CAPITAL_ZONES } from "./lib/zones.ts";
 import {
   createAdventure,
   setAdventureAction,
@@ -51,9 +52,12 @@ const emptyDistricts: District[] = DISTRICT_NAMES.map((name, i) => ({
   residents: 0,
   capacity: 1024,
 }));
+const isGameRoute = () => !location.hash || location.hash === "#jugar";
 export function App() {
-  const [playing, setPlaying] = useState(location.hash === "#jugar");
+  const [playing, setPlaying] = useState(isGameRoute);
   const [activity, setActivity] = useState<Activity>("explore");
+  const [activityOpen, setActivityOpen] = useState(false),
+    [gameMenu, setGameMenu] = useState(false);
   const [harbor, setHarbor] = useState<HarborStatus | null>(null),
     [harborError, setHarborError] = useState("");
   const adventureRef = useRef<ReturnType<typeof createAdventure> | null>(null);
@@ -126,6 +130,8 @@ export function App() {
   }, []);
   const visitActivity = useCallback((a: Activity) => {
     setActivity(a);
+    setGameMenu(false);
+    setActivityOpen(a !== "explore");
     const state = adventureRef.current!;
     state.input = { x: 0, y: 0 };
     state.notice = "";
@@ -136,6 +142,8 @@ export function App() {
     setMessage("");
     setError("");
     returnFocus.current = document.activeElement as HTMLElement;
+    setActivityOpen(false);
+    setGameMenu(false);
     setPlaying(true);
     if (location.hash !== "#jugar") history.pushState(null, "", "#jugar");
     if (r) {
@@ -145,9 +153,15 @@ export function App() {
   }
   function closeGame() {
     adventure.input = { x: 0, y: 0 };
+    setGameMenu(false);
+    setActivityOpen(false);
     setPlaying(false);
-    if (location.hash === "#jugar")
-      history.replaceState(null, "", location.pathname + location.search);
+    if (isGameRoute())
+      history.replaceState(
+        null,
+        "",
+        location.pathname + location.search + "#inicio",
+      );
     requestAnimationFrame(() => returnFocus.current?.focus());
   }
   useEffect(() => {
@@ -158,7 +172,7 @@ export function App() {
     return () => clearInterval(timer);
   }, [refreshHarbor]);
   useEffect(() => {
-    const pop = () => setPlaying(location.hash === "#jugar");
+    const pop = () => setPlaying(isGameRoute());
     window.addEventListener("popstate", pop);
     window.addEventListener("hashchange", pop);
     return () => {
@@ -663,7 +677,9 @@ export function App() {
               if (!playing) return;
               if (e.key === "Escape") {
                 e.preventDefault();
-                closeGame();
+                if (gameMenu) setGameMenu(false);
+                else if (activityOpen) setActivityOpen(false);
+                else closeGame();
               }
               if (e.key === "Tab") {
                 const nodes = [
@@ -686,51 +702,108 @@ export function App() {
             {playing && (
               <header className="game-topbar">
                 <button onClick={closeGame} aria-label="Salir del modo juego">
-                  ← Volver
+                  ←
                 </button>
-                <div>
-                  <strong>HISPANIA</strong>
-                  <small>
-                    {connected ? `${total} vecinos` : "Conectando…"}
-                  </small>
-                </div>
                 <button
                   onClick={() => {
-                    closeGame();
-                    openMembership();
+                    setGameMenu((v) => !v);
+                    setActivityOpen(false);
+                    adventure.input = { x: 0, y: 0 };
                   }}
+                  aria-label={
+                    gameMenu ? "Cerrar menú del juego" : "Abrir menú del juego"
+                  }
+                  aria-expanded={gameMenu}
                 >
-                  {mine ? "Mi lugar" : "Mi nick"}
+                  {gameMenu ? "×" : "☰"}
                 </button>
               </header>
             )}
-            {playing && (
-              <form
-                className="game-search"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  void act(async () => {
-                    const r = await api.search(normalizeNick(query));
-                    if (r) {
-                      setFocus({ ...r });
-                      setSelected(r);
-                      setActivity("explore");
-                    } else setMessage("No encontramos ese nick.");
-                  });
-                }}
-              >
-                <input
-                  aria-label="Buscar nick en el juego"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Busca tu nick o el de un vecino"
-                  maxLength={25}
-                />
-                <button disabled={busy}>Buscar</button>
-                {(message || error) && (
-                  <span role="status">{message || error}</span>
-                )}
-              </form>
+            {playing && gameMenu && (
+              <section className="game-menu" aria-label="Menú del juego">
+                <h2>Hispania</h2>
+                <p>
+                  {connected ? `${total} vecinos en el mapa` : "Conectando…"}
+                </p>
+                <form
+                  className="game-search"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    void act(async () => {
+                      const r = await api.search(normalizeNick(query));
+                      if (r) {
+                        setFocus({ ...r });
+                        setSelected(r);
+                        setActivity("explore");
+                        setActivityOpen(false);
+                        setGameMenu(false);
+                      } else setMessage("No encontramos ese nick.");
+                    });
+                  }}
+                >
+                  <input
+                    aria-label="Buscar nick en el juego"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Busca tu nick o el de un vecino"
+                    maxLength={25}
+                  />
+                  <button disabled={busy}>Buscar</button>
+                  {(message || error) && (
+                    <span role="status">{message || error}</span>
+                  )}
+                </form>
+                <div className="game-menu-zones">
+                  <button
+                    onClick={() => {
+                      setDestination({
+                        ...CAPITAL_ZONES[0],
+                        zoom: 5,
+                        nonce: Date.now(),
+                      });
+                      setGameMenu(false);
+                    }}
+                  >
+                    Capital · Bahía del Sol
+                  </button>
+                  <button
+                    onClick={() => {
+                      setDestination({
+                        ...CAPITAL_ZONES[1],
+                        zoom: 5,
+                        nonce: Date.now(),
+                      });
+                      setGameMenu(false);
+                    }}
+                  >
+                    Zona B · Valle Verde
+                  </button>
+                  <button
+                    onClick={() => {
+                      setDestination({
+                        ...FIRST_MARKET,
+                        zoom: 6,
+                        nonce: Date.now(),
+                      });
+                      setGameMenu(false);
+                    }}
+                  >
+                    Patatas de @maravaf
+                  </button>
+                  <button
+                    onClick={() => {
+                      closeGame();
+                      openMembership();
+                    }}
+                  >
+                    {mine ? "Mi lugar" : "Crear mi nick"}
+                  </button>
+                </div>
+                <p className="menu-help">
+                  Flechas o WASD para moverte. Toca el suelo para caminar.
+                  Arrastra para mirar y pellizca para acercarte.
+                </p>
+              </section>
             )}
             <Suspense
               fallback={
@@ -750,7 +823,7 @@ export function App() {
                 onPoint={(x, y) => setPoint({ x, y })}
                 onBounds={loadBounds}
                 gameMode={playing}
-                activityOpen={activity !== "explore"}
+                activityOpen={activityOpen}
                 destination={destination}
                 deliveries={harbor?.deliveries ?? 0}
                 playerNick={mine?.nick ?? "Anónimo"}
@@ -785,7 +858,12 @@ export function App() {
               >
                 <HarborGame
                   activity={activity}
-                  onActivity={visitActivity}
+                  panelOpen={activityOpen}
+                  onPanelOpen={setActivityOpen}
+                  onActivity={(a) => {
+                    setGameMenu(false);
+                    visitActivity(a);
+                  }}
                   status={harbor}
                   error={harborError}
                   onStatus={setHarbor}

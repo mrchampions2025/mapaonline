@@ -1,6 +1,12 @@
 # Juego de Hispania
 
-Entrada: **Ver mapa / Jugar**, antes del formulario y en la cabecera; enlace directo `/#jugar`. Se puede explorar como Anónimo. Un nick solo identifica al personaje cuando pertenece a la sesión de la web: buscar o escribir un nick importado no concede propiedad. Los habitantes y sus parcelas permanecen en sus posiciones.
+La web abre directamente el mapa jugable a pantalla completa en `/` y `/#jugar`. La flecha de salida muestra la web informativa en `/#inicio`; los enlaces a bandera, reglas y formulario siguen disponibles por sus anclas. **Ver mapa / Jugar** permite volver desde la web. Se puede explorar como Anónimo. Un nick solo identifica al personaje cuando pertenece a la sesión de la web: buscar o escribir un nick importado no concede propiedad. Los habitantes y sus parcelas permanecen en sus posiciones.
+
+## Mapa protagonista y personaje a escala
+
+El canvas ocupa todo el viewport. No hay barras permanentes de búsqueda, vecinos ni zonas A/B encima del terreno. El menú ☰ agrupa la búsqueda de nicks, las zonas y el registro; se abre solo al pulsarlo. Las actividades están en una barra flotante inferior. Sus paneles se pueden cerrar y se apartan automáticamente al iniciar una acción. Los botones rápidos permiten continuar cortando, entregar madera o embarcar sin volver a abrir un panel. Los controles táctiles de movimiento tienen 44 píxeles.
+
+El personaje se dibuja al 36 % de su escala anterior dentro del mundo, incluido cuando está a bordo. El zoom de seguimiento inicial es 8 en móvil y 3 en escritorio, para ver su recorrido con una proporción coherente respecto a los árboles y edificios. Se puede modificar el zoom sin que el movimiento lo restablezca. En una vista muy lejana se oculta su etiqueta para no cubrir el mapa.
 
 ## Navegación y fluidez
 

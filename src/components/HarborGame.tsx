@@ -22,6 +22,8 @@ import { friendlyError } from "../lib/api.ts";
 export type Activity = "explore" | "wood" | "ship" | "dock" | "wildlife";
 type Props = {
   activity: Activity;
+  panelOpen: boolean;
+  onPanelOpen: (open: boolean) => void;
   onActivity: (a: Activity) => void;
   status: HarborStatus | null;
   error: string;
@@ -56,6 +58,8 @@ function resume() {
 }
 export function HarborGame({
   activity,
+  panelOpen,
+  onPanelOpen,
   onActivity,
   status,
   error,
@@ -75,7 +79,7 @@ export function HarborGame({
   const sheet = useRef<HTMLDivElement>(null);
   useEffect(() => {
     sheet.current?.scrollTo({ top: 0 });
-  }, [activity]);
+  }, [activity, panelOpen]);
   const lock = useRef(false),
     mounted = useRef(true),
     timer = useRef<ReturnType<typeof setTimeout> | null>(null),
@@ -235,6 +239,7 @@ export function HarborGame({
     setNotice("");
     try {
       setWork(await startWork());
+      onPanelOpen(false);
       setLogs([]);
       onAction({ ...IDLE, from: s.player, to: s.player });
     } catch (e) {
@@ -250,6 +255,7 @@ export function HarborGame({
     setBusy(true);
     setFailure("");
     setActionLabel("Caminando y cortando…");
+    onPanelOpen(false);
     try {
       await animate("chop", TREES[i], 2600);
       if (!mounted.current) return;
@@ -273,6 +279,7 @@ export function HarborGame({
     setFailure("");
     try {
       setActionLabel("Llevando 3 troncos al muelle…");
+      onPanelOpen(false);
       await animate("deliver", HARBOR, 1200);
       if (!mounted.current) return;
       setActionLabel("Confirmando tus 3 troncos…");
@@ -308,6 +315,7 @@ export function HarborGame({
     if (s.aboard) leaveBoat(s);
     else boardBoat(s);
     setView(snapshot());
+    onPanelOpen(false);
   }
   function direction(x: number, y: number) {
     if (lock.current || s.action.kind !== "idle") return;
@@ -315,7 +323,10 @@ export function HarborGame({
     s.follow = true;
   }
   return (
-    <section className="game-activities" aria-label="Actividades del país">
+    <section
+      className={"game-activities" + (panelOpen ? " panel-open" : "")}
+      aria-label="Actividades del país"
+    >
       <div className="travel-controls" aria-label="Mover tu personaje o barco">
         <span>{view.aboard ? "⚓ A bordo" : "🚶 A pie"}</span>
         {(
@@ -369,7 +380,7 @@ export function HarborGame({
           ◎
         </button>
       </div>
-      {activity !== "explore" && (
+      {panelOpen && activity !== "explore" && (
         <div className="activity-sheet" ref={sheet}>
           <div className="activity-heading">
             <div>
@@ -391,9 +402,8 @@ export function HarborGame({
               </h2>
             </div>
             <button
-              disabled={busy}
               aria-label="Cerrar actividad"
-              onClick={() => onActivity("explore")}
+              onClick={() => onPanelOpen(false)}
             >
               ×
             </button>
@@ -599,12 +609,73 @@ export function HarborGame({
           </small>
         </div>
       )}
-      {activity === "explore" && (
-        <div className="explore-hint" role="status">
-          {view.error ||
-            view.notice ||
-            "Toca el suelo para caminar · Mantén las flechas para moverte · Arrastra para mirar"}
-        </div>
+      {!panelOpen && (
+        <>
+          <div className="game-toast" role="status">
+            {actionLabel ||
+              failure ||
+              view.error ||
+              notice ||
+              view.notice ||
+              (!work
+                ? view.aboard
+                  ? "Mantén las flechas para navegar · Desembarca junto a una costa"
+                  : "Toca el suelo para caminar · Mantén las flechas para moverte"
+                : "")}
+          </div>
+          <div className="quick-action">
+            {busy ? (
+              <button disabled className="primary">
+                {actionLabel || "Preparando…"}
+              </button>
+            ) : view.aboard || activity === "ship" ? (
+              <button
+                className="primary"
+                disabled={view.aboard && !view.canLand}
+                onClick={travelBoat}
+              >
+                {view.aboard
+                  ? view.canLand
+                    ? "Desembarcar aquí"
+                    : "Acércate a la costa"
+                  : view.nearBoat
+                    ? "Embarcar"
+                    : "Caminar al barco"}
+              </button>
+            ) : work ? (
+              <button
+                className="primary"
+                onClick={() =>
+                  logs.length === 3
+                    ? void deliver()
+                    : void collect([0, 1, 2].find((i) => !logs.includes(i))!)
+                }
+              >
+                {logs.length === 3
+                  ? "Entregar 3 troncos"
+                  : `Cortar siguiente árbol · ${logs.length}/3`}
+              </button>
+            ) : activity === "wood" && !cooling && !complete ? (
+              <button
+                className="primary"
+                disabled={!status || view.aboard}
+                onClick={() => void begin()}
+              >
+                Empezar jornada
+              </button>
+            ) : (
+              <button
+                className="inventory-shortcut"
+                onClick={() => {
+                  onActivity("wildlife");
+                  onPanelOpen(true);
+                }}
+              >
+                🐾 Inventario · {view.found.length}/{HIDDEN_ANIMALS.length}
+              </button>
+            )}
+          </div>
+        </>
       )}
       <nav className="activity-tabs" aria-label="Elegir actividad">
         {(
@@ -624,6 +695,7 @@ export function HarborGame({
               setNotice("");
               setFailure("");
               onActivity(id);
+              onPanelOpen(id !== "explore" && (id !== activity || !panelOpen));
             }}
           >
             <span aria-hidden="true">{icon}</span>

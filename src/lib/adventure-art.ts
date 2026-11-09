@@ -23,9 +23,9 @@ export function drawDiscoveries(
     ctx.save();
     ctx.fillStyle = found ? "#4ee9b64a" : "#ffc46666";
     ctx.beginPath();
-    ctx.ellipse(p.x, p.y, 14 * scale, 5 * scale, 0, 0, Math.PI * 2);
+    ctx.ellipse(p.x, p.y, 7 * scale, 3 * scale, 0, 0, Math.PI * 2);
     ctx.fill();
-    ctx.font = `${Math.max(16, 23 * scale)}px "Segoe UI Emoji",system-ui`;
+    ctx.font = `${Math.max(10, 12 * scale)}px "Segoe UI Emoji",system-ui`;
     ctx.textAlign = "center";
     ctx.fillText(animal.icon, p.x, p.y + Math.sin(time * 2) * scale);
     if (scale > 0.7) {
