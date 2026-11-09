@@ -805,6 +805,7 @@ export function Atlas(props: Props) {
                 Math.abs(p.x - market.x) < 50 &&
                 Math.abs(p.y - market.y) < 85
               ) {
+                props.adventure.path = null;
                 props.adventure.notice =
                   "El puesto es una construcción física. Tu personaje debe rodearlo.";
                 return;

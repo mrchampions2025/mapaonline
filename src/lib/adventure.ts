@@ -183,6 +183,11 @@ export function walkTo(s: Adventure, target: Point) {
     return false;
   }
   s.path = null;
+  if (!canWalk(target, s.obstacles)) {
+    s.notice =
+      "Ese punto es agua o un obstáculo. Toca suelo libre para caminar; usa el barco para navegar.";
+    return false;
+  }
   const path = walkingPath(s.player, target, s.obstacles);
   if (!path) {
     s.notice =
@@ -190,6 +195,7 @@ export function walkTo(s: Adventure, target: Point) {
     return false;
   }
   s.path = path.slice(1);
+  s.notice = "";
   s.follow = true;
   return true;
 }

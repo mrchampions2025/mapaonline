@@ -20,6 +20,17 @@ test("un destino inaccesible cancela la ruta anterior y no sigue hacia otro lado
   stepAdventure(s, 1 / 60, Date.now());
   assert.deepEqual(s.player, before);
 });
+
+test("tocar agua junto a tierra no redirige a una orilla que no has elegido", () => {
+  const s = createAdventure();
+  s.player = { x: 565, y: 1030 };
+  s.action = { ...IDLE, from: s.player, to: s.player };
+  const river = { x: 590.5608974358975, y: 1094.1346153846155 };
+  assert.equal(canWalk(river), false);
+  assert.equal(walkTo(s, river), false);
+  assert.equal(s.path, null);
+  assert.deepEqual(s.player, { x: 565, y: 1030 });
+});
 test("si aparece un obstáculo en una ruta, no atraviesa el último tramo ni camina eternamente", () => {
   const s = createAdventure();
   s.player = { x: 565, y: 1060 };
