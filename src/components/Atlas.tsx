@@ -1,3 +1,6 @@
+import { anchoredCamera, screenToWorld, panCamera } from "../lib/camera.ts";
+import { MINE, mineObstacles, mineUnlocked, drawMine } from "../lib/mine.ts";
+import { TIKTOK_AUDIENCE } from "../lib/community.ts";
 import {
   stepAdventure,
   walkTo,
@@ -50,19 +53,29 @@ export function Atlas(props: Props) {
     box = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ w: 800, h: 560 }),
     [image, setImage] = useState<HTMLImageElement | null>(null),
-    [cam, setCam] = useState(initial);
+    [cam, setCamState] = useState(initial);
+  const [mineOpen, setMineOpen] = useState(false);
   const live = useRef(props);
   live.current = props;
   const renderedCam = useRef<Camera>({ ...initial }),
     targetCam = useRef<Camera>({ ...initial }),
     renderedCenter = useRef(280);
-  useEffect(() => {
-    targetCam.current = { ...cam };
-  }, [cam]);
+  // Camera targets are written synchronously; React renders must never replay a stale target.
+  function setCam(next: Camera | ((c: Camera) => Camera)) {
+    const value = typeof next === "function" ? next(targetCam.current) : next;
+    targetCam.current = { ...value };
+    setCamState(value);
+  }
+  function manualCamera(next: Camera) {
+    if (live.current.adventure) live.current.adventure.follow = false;
+    renderedCam.current = { ...next };
+    setCam(next);
+  }
   useEffect(() => {
     if (props.adventure)
       props.adventure.obstacles = [
         MARKET_OBSTACLE,
+        ...mineObstacles(),
         ...props.objects
           .filter((o) => o.kind === "house")
           .map((o) => ({
@@ -78,6 +91,7 @@ export function Atlas(props: Props) {
     y: number;
     cam: Camera;
     moved: boolean;
+    point: { x: number; y: number };
   } | null>(null);
   const pointers = useRef(new Map<number, { x: number; y: number }>());
   const pinch = useRef<{
@@ -116,10 +130,7 @@ export function Atlas(props: Props) {
   }, []);
   const fit = Math.min(size.w / 1450, size.h / 850),
     scale = fit * cam.zoom;
-  const centerY =
-    props.gameMode && props.activityOpen
-      ? size.h * (size.w <= 360 ? 0.19 : 0.28)
-      : size.h / 2;
+  const centerY = size.h / 2;
   const activeZone = CAPITAL_ZONES.find(
     (z) => cam.zoom >= 2 && Math.hypot(cam.x - z.x, cam.y - z.y) < 2,
   );
@@ -135,17 +146,36 @@ export function Atlas(props: Props) {
     };
   }
   function world(x: number, y: number) {
-    return {
-      x:
-        (x - size.w / 2) / (fit * renderedCam.current.zoom) +
-        renderedCam.current.x,
-      y:
-        (y - renderedCenter.current) / (fit * renderedCam.current.zoom) +
-        renderedCam.current.y,
-    };
+    return screenToWorld(
+      { x, y },
+      renderedCam.current,
+      fit,
+      size.w / 2,
+      renderedCenter.current,
+    );
   }
-  function zoom(delta: number) {
-    setCam((c) => ({ ...c, zoom: Math.min(12, Math.max(1, c.zoom * delta)) }));
+  function zoom(
+    delta: number,
+    point = { x: size.w / 2, y: renderedCenter.current },
+  ) {
+    const following =
+      live.current.adventure?.follow &&
+      point.x === size.w / 2 &&
+      point.y === renderedCenter.current;
+    const current = renderedCam.current;
+    const z = Math.min(12, Math.max(1, current.zoom * delta));
+    manualCamera(
+      anchoredCamera(
+        world(point.x, point.y),
+        point,
+        z,
+        fit,
+        size.w / 2,
+        renderedCenter.current,
+      ),
+    );
+    if (following && live.current.adventure)
+      live.current.adventure.follow = true;
   }
   useEffect(() => {
     const img = new Image();
@@ -158,7 +188,11 @@ export function Atlas(props: Props) {
   useEffect(() => {
     if (!box.current) return;
     const observer = new ResizeObserver(([entry]) =>
-      setSize({ w: entry.contentRect.width, h: entry.contentRect.height }),
+      setSize((old) =>
+        old.w === entry.contentRect.width && old.h === entry.contentRect.height
+          ? old
+          : { w: entry.contentRect.width, h: entry.contentRect.height },
+      ),
     );
     observer.observe(box.current);
     return () => observer.disconnect();
@@ -189,14 +223,15 @@ export function Atlas(props: Props) {
     if (!el) return;
     const wheel = (e: WheelEvent) => {
       e.preventDefault();
-      setCam((c) => ({
-        ...c,
-        zoom: Math.max(1, Math.min(12, c.zoom * Math.exp(-e.deltaY * 0.0015))),
-      }));
+      const rect = el.getBoundingClientRect();
+      zoom(Math.exp(-e.deltaY * 0.0015), {
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top,
+      });
     };
     el.addEventListener("wheel", wheel, { passive: false });
     return () => el.removeEventListener("wheel", wheel);
-  }, []);
+  }, [fit, size.w]);
   useEffect(() => {
     const el = canvas.current;
     if (!el) return;
@@ -231,10 +266,17 @@ export function Atlas(props: Props) {
             props.onDiscover?.(a.code);
       }
       const target = { ...targetCam.current };
-      if (state?.follow && props.gameMode) {
+      if (
+        state?.follow &&
+        props.gameMode &&
+        !drag.current?.moved &&
+        !pinch.current
+      ) {
         const p = state.aboard ? state.boat : state.player;
         target.x = p.x;
         target.y = p.y;
+        targetCam.current.x = p.x;
+        targetCam.current.y = p.y;
       }
       const camera = renderedCam.current,
         blend = 1 - Math.exp(-12 * dt);
@@ -278,6 +320,11 @@ export function Atlas(props: Props) {
           el!.dataset.boatY = state.boat.y.toFixed(2);
           el!.dataset.mode = state.aboard ? "boat" : "foot";
           el!.dataset.cameraZoom = cam.zoom.toFixed(2);
+          el!.dataset.cameraX = cam.x.toFixed(2);
+          el!.dataset.cameraY = cam.y.toFixed(2);
+          el!.dataset.follow = String(state.follow);
+          el!.dataset.targetX = state.path?.at(-1)?.x.toFixed(2) ?? "";
+          el!.dataset.targetY = state.path?.at(-1)?.y.toFixed(2) ?? "";
         }
         frameCount = 0;
         lastFps = now;
@@ -486,6 +533,28 @@ export function Atlas(props: Props) {
         clock,
         state ? { ...state.boat, facing: state.direction } : undefined,
       );
+      if (state?.path?.length && props.gameMode) {
+        ctx.save();
+        ctx.strokeStyle = "#ffe1a1b0";
+        ctx.lineWidth = 2;
+        ctx.setLineDash([4, 6]);
+        ctx.beginPath();
+        const origin = screen(state.player.x, state.player.y);
+        ctx.moveTo(origin.x, origin.y);
+        for (const point of state.path) {
+          const q = screen(point.x, point.y);
+          ctx.lineTo(q.x, q.y);
+        }
+        ctx.stroke();
+        ctx.setLineDash([]);
+        const goal = state.path.at(-1)!;
+        const q = screen(goal.x, goal.y);
+        ctx.beginPath();
+        ctx.arc(q.x, q.y, 7, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+      drawMine(ctx, screen, scale, now / 1000, reducedMotion.matches);
       drawForest(ctx, screen, scale);
       drawCapitalZones(ctx, screen, size.w, size.h);
       if (state && props.gameMode) {
@@ -596,10 +665,11 @@ export function Atlas(props: Props) {
             if (e.key === "-") zoom(1 / 1.4);
           }}
           onPointerDown={(e) => {
-            if (props.adventure) props.adventure.follow = false;
+            if (e.button !== 0) return;
             e.currentTarget.setPointerCapture(e.pointerId);
             pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
             if (pointers.current.size === 2) {
+              manualCamera({ ...renderedCam.current });
               const [a, b] = [...pointers.current.values()];
               const rect = e.currentTarget.getBoundingClientRect();
               pinch.current = {
@@ -613,11 +683,16 @@ export function Atlas(props: Props) {
               drag.current = null;
               return;
             }
+            if (pointers.current.size > 2) return;
             drag.current = {
               x: e.clientX,
               y: e.clientY,
               cam: { ...renderedCam.current },
               moved: false,
+              point: world(
+                e.clientX - e.currentTarget.getBoundingClientRect().left,
+                e.clientY - e.currentTarget.getBoundingClientRect().top,
+              ),
             };
           }}
           onPointerMove={(e) => {
@@ -634,43 +709,47 @@ export function Atlas(props: Props) {
                 ),
               );
               const rect = e.currentTarget.getBoundingClientRect();
-              setCam({
-                zoom: z,
-                x: Math.max(
-                  0,
-                  Math.min(
-                    1600,
-                    g.anchor.x -
-                      ((a.x + b.x) / 2 - rect.left - size.w / 2) / (fit * z),
-                  ),
+              manualCamera(
+                anchoredCamera(
+                  g.anchor,
+                  {
+                    x: (a.x + b.x) / 2 - rect.left,
+                    y: (a.y + b.y) / 2 - rect.top,
+                  },
+                  z,
+                  fit,
+                  size.w / 2,
+                  renderedCenter.current,
                 ),
-                y: Math.max(
-                  400,
-                  Math.min(
-                    1800,
-                    g.anchor.y -
-                      ((a.y + b.y) / 2 - rect.top - centerY) / (fit * z),
-                  ),
-                ),
-              });
+              );
               return;
             }
             const d = drag.current;
             if (!d) return;
             const dx = e.clientX - d.x,
               dy = e.clientY - d.y;
-            if (Math.abs(dx) + Math.abs(dy) > 5) d.moved = true;
-            if (d.moved)
-              setCam({
-                ...d.cam,
-                x: Math.max(0, Math.min(1600, d.cam.x - dx / scale)),
-                y: Math.max(400, Math.min(1800, d.cam.y - dy / scale)),
-              });
+            if (Math.hypot(dx, dy) > 7 && !d.moved) {
+              d.moved = true;
+              // Freeze the actual displayed camera only when this is a drag, never on a tap.
+              d.cam = { ...renderedCam.current };
+              d.x = e.clientX;
+              d.y = e.clientY;
+              manualCamera(d.cam);
+            } else if (d.moved) {
+              manualCamera(panCamera(d.cam, dx, dy, fit));
+            }
           }}
           onPointerCancel={() => {
             drag.current = null;
             pinch.current = null;
             pointers.current.clear();
+          }}
+          onLostPointerCapture={(e) => {
+            pointers.current.delete(e.pointerId);
+            if (!pointers.current.size) {
+              drag.current = null;
+              pinch.current = null;
+            }
           }}
           onPointerUp={(e) => {
             pointers.current.delete(e.pointerId);
@@ -683,6 +762,7 @@ export function Atlas(props: Props) {
                     y: remaining.y,
                     cam: { ...renderedCam.current },
                     moved: true,
+                    point: { x: 0, y: 0 },
                   }
                 : null;
               return;
@@ -690,8 +770,7 @@ export function Atlas(props: Props) {
             const d = drag.current;
             drag.current = null;
             if (!d || d.moved) return;
-            const rect = e.currentTarget.getBoundingClientRect(),
-              p = world(e.clientX - rect.left, e.clientY - rect.top);
+            const p = d.point;
             if (props.editing) {
               props.onPoint(Math.round(p.x), Math.round(p.y));
               return;
@@ -704,23 +783,21 @@ export function Atlas(props: Props) {
             ] as const) {
               if (
                 Math.hypot(p.x - point.x, p.y - point.y) * scale <
-                Math.max(24, 45 * scale)
+                Math.min(24, 18 * scale)
               ) {
                 props.onActivity?.(action);
                 return;
               }
             }
-            if (
-              props.gameMode &&
-              props.adventure &&
-              renderedCam.current.zoom >= 2
-            ) {
-              const nearby = props.residents.find((r) => {
-                const q = PARCEL_POSITIONS[r.parcel_id - 1];
-                return q && distance(q, p) * scale < 12;
-              });
-              if (nearby) {
-                props.onSelect(nearby);
+            if (props.gameMode && props.adventure) {
+              if (distance(p, MINE) < 42) {
+                props.adventure.follow = false;
+                setCam({
+                  ...MINE,
+                  y: MINE.y + (window.innerWidth < 700 ? 35 : 0),
+                  zoom: window.innerWidth < 700 ? 8 : 3.5,
+                });
+                setMineOpen(true);
                 return;
               }
               if (
@@ -732,7 +809,9 @@ export function Atlas(props: Props) {
                   "El puesto es una construcción física. Tu personaje debe rodearlo.";
                 return;
               }
+              const following = props.adventure.follow;
               walkTo(props.adventure, p);
+              props.adventure.follow = following;
               return;
             }
             const zone = CAPITAL_ZONES.find((z) => {
@@ -766,7 +845,9 @@ export function Atlas(props: Props) {
             });
             props.onSelect(nearest || null);
           }}
-          onDoubleClick={() => zoom(1.6)}
+          onDoubleClick={() => {
+            if (!props.gameMode) zoom(1.6);
+          }}
         />
         <div className="atlas-label">
           <span className="live-dot" /> ARCHIPIÉLAGO 01 <span>/</span>{" "}
@@ -776,7 +857,72 @@ export function Atlas(props: Props) {
               ? `ZONA ${activeZone.id} · ${activeZone.name.toLocaleUpperCase("es")}`
               : "EXPLORANDO EL ATLAS"}
         </div>
+        {mineOpen && (
+          <section className="mine-panel" aria-label="Mina de Hispania">
+            <button
+              className="mine-close"
+              aria-label="Cerrar mina"
+              onClick={() => setMineOpen(false)}
+            >
+              ×
+            </button>
+            <span className="eyebrow">NUEVA ZONA · META COLECTIVA</span>
+            <h2>⛏ Mina de la colina</h2>
+            <p>
+              {mineUnlocked()
+                ? "Meta de seguidores verificada. La entrada está abierta; la extracción está en preparación."
+                : "Dos cadenas cierran la entrada. Se abrirá al verificar 500 seguidores en TikTok."}
+            </p>
+            <progress
+              max={MINE.goal}
+              value={Math.min(MINE.goal, TIKTOK_AUDIENCE.followers)}
+              aria-label="Seguidores verificados para abrir la mina"
+            />
+            <strong>
+              {TIKTOK_AUDIENCE.followers} / {MINE.goal} seguidores verificados
+            </strong>
+            <small>
+              Última comprobación: {TIKTOK_AUDIENCE.checkedLabel}. No es un
+              contador en directo. Los vecinos del mapa se cuentan aparte.
+            </small>
+            <p>
+              Después: piedra y hierro para nuevas construcciones. Extracción y
+              recompensas todavía no disponibles.
+            </p>
+            {props.adventure && (
+              <button
+                onClick={() => {
+                  if (walkTo(props.adventure!, MINE.entrance))
+                    setMineOpen(false);
+                }}
+              >
+                Caminar hasta la entrada
+              </button>
+            )}
+            <a
+              href={TIKTOK_AUDIENCE.source}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Ver TikTok oficial ↗
+            </a>
+          </section>
+        )}
         <div className="map-controls">
+          <button
+            aria-label="Ver mina de la colina"
+            onClick={() => {
+              if (props.adventure) props.adventure.follow = false;
+              setCam({
+                ...MINE,
+                y: MINE.y + (window.innerWidth < 700 ? 35 : 0),
+                zoom: window.innerWidth < 700 ? 8 : 3.5,
+              });
+              setMineOpen(true);
+            }}
+          >
+            ⛏
+          </button>
           <button aria-label="Acercar mapa" onClick={() => zoom(1.5)}>
             +
           </button>

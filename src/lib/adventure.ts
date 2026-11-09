@@ -148,25 +148,41 @@ export function stepAdventure(s: Adventure, dt: number, now: number) {
     while (s.path.length && budget > 0) {
       const p = s.path[0],
         d = distance(s.player, p);
-      if (d <= budget) {
-        s.player = p;
+      if (d < 0.001) {
         s.path.shift();
-        budget -= d;
-      } else {
-        s.player = moveAgainstCollisions(
-          s.player,
-          ((p.x - s.player.x) / d) * budget,
-          ((p.y - s.player.y) / d) * budget,
-          (p) => canWalk(p, s.obstacles),
-        );
-        budget = 0;
+        continue;
       }
-      s.walking = true;
+      const amount = Math.min(d, budget),
+        old = s.player;
+      const next = moveAgainstCollisions(
+        old,
+        ((p.x - old.x) / d) * amount,
+        ((p.y - old.y) / d) * amount,
+        (p) => canWalk(p, s.obstacles),
+      );
+      const travelled = distance(old, next);
+      s.player = next;
+      budget -= amount;
+      s.walking ||= travelled > 0.001;
+      if (Math.abs(next.x - old.x) > 0.001)
+        s.direction = next.x >= old.x ? 1 : -1;
+      if (distance(next, p) < 0.01) s.path.shift();
+      else if (travelled < amount * 0.5) {
+        s.path = null;
+        s.notice = "El camino está bloqueado. Toca otro punto para rodearlo.";
+        break;
+      }
     }
   }
 }
 export function walkTo(s: Adventure, target: Point) {
-  if (s.aboard || s.action.kind !== "idle") return false;
+  if (s.aboard || s.action.kind !== "idle") {
+    s.notice = s.aboard
+      ? "Llevas el timón: usa las flechas para navegar y busca una costa para bajar."
+      : "Termina la tarea actual antes de elegir otro destino.";
+    return false;
+  }
+  s.path = null;
   const path = walkingPath(s.player, target, s.obstacles);
   if (!path) {
     s.notice =
