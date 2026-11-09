@@ -4,9 +4,20 @@ export { SUMMIT_FLAGPOLE };
 
 type Screen = (x: number, y: number) => { x: number; y: number };
 
+let cachedFlagImg: HTMLImageElement | null = null;
+function getFlagImage(): HTMLImageElement | null {
+  if (typeof window === "undefined" || typeof Image === "undefined") return null;
+  if (!cachedFlagImg) {
+    cachedFlagImg = new Image();
+    cachedFlagImg.src = "/flags/bandera_1_leon_v2.png";
+  }
+  return cachedFlagImg;
+}
+
 /**
  * Renders the official national mast and waving flag on the highest summit of Hispania.
- * Uses continuous sine-wave cloth simulation with realistic shading and golden finial.
+ * Uses the exact official image asset provided by the user without alterations,
+ * mapped onto dynamic vertical cloth-wave slices with lighting highlights and shadows.
  */
 export function drawFlagpole(
   ctx: CanvasRenderingContext2D,
@@ -28,14 +39,13 @@ export function drawFlagpole(
   ctx.translate(p.x, p.y);
   ctx.scale(scale, scale);
 
-  // 1. Shadow on mountain summit
+  // 1. Mountain summit base shadow
   ctx.fillStyle = "#16232cee";
   ctx.beginPath();
   ctx.ellipse(0, 4, 22, 7, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  // 2. Worked stone plinth / monument base
-  // Lower step
+  // 2. Worked stone plinth foundation
   ctx.fillStyle = "#38434c";
   ctx.beginPath();
   ctx.ellipse(0, 2, 16, 5.5, 0, 0, Math.PI * 2);
@@ -50,15 +60,14 @@ export function drawFlagpole(
   ctx.ellipse(0, -1, 11, 4, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  // Golden commemorative collar ring
+  // Golden collar ring
   ctx.fillStyle = "#dcb143";
   ctx.fillRect(-3, -3, 6, 2.5);
 
   // 3. Tall Mast (Flagpole)
-  const mastHeight = 82; // from -2 to -84
+  const mastHeight = 82;
   const mastTopY = -mastHeight;
 
-  // Mast shadow/body
   const poleGrad = ctx.createLinearGradient(-2, 0, 2, 0);
   poleGrad.addColorStop(0, "#3d2a1b");
   poleGrad.addColorStop(0.35, "#8a6646");
@@ -74,7 +83,7 @@ export function drawFlagpole(
   ctx.closePath();
   ctx.fill();
 
-  // Halyard rope running along the mast
+  // Halyard rope
   ctx.strokeStyle = "#e8e5dc";
   ctx.lineWidth = 0.75;
   ctx.beginPath();
@@ -82,31 +91,28 @@ export function drawFlagpole(
   ctx.lineTo(2.2, -5);
   ctx.stroke();
 
-  // Cleat at the bottom of the mast
+  // Cleat
   ctx.fillStyle = "#c79e39";
   ctx.fillRect(1.5, -9, 2.2, 4);
 
-  // 4. Waving Flag: "El León Fundador" (Oro y Carmesí)
-  // Dimensions: 54px length x 32px height
-  const flagW = 52;
-  const flagH = 32;
-  const flagTop = mastTopY + 3; // -81
+  // 4. Waving Flag: EXACT IMAGE ASSET MAPPED ACROSS CLOTH SLICES
+  // Aspect ratio of the original flag is ~1024x665 (~1.54)
+  const flagW = 54;
+  const flagH = 35;
+  const flagTop = mastTopY + 3;
   const flagLeft = 1.4;
-  const slices = 26;
+  const slices = 28;
   const sliceW = flagW / slices;
 
-  const crimsonDark = "#741224";
-  const crimsonMain = "#8d1830";
-  const goldStripe = "#f5bd38";
-  const goldLion = "#fad45a";
+  const img = getFlagImage();
+  const hasImg = img && img.complete && img.naturalWidth > 0;
 
   for (let i = 0; i < slices; i++) {
     const x0 = flagLeft + i * sliceW;
-    const x1 = flagLeft + (i + 1) * sliceW;
     const prog0 = i / slices;
     const prog1 = (i + 1) / slices;
 
-    // Flutter physics with multi-frequency waves
+    // Flutter wave displacement
     const waveY0 = reducedMotion
       ? 0
       : Math.sin(time * 5.8 - prog0 * 4.8) * (prog0 * 4.2) +
@@ -117,102 +123,39 @@ export function drawFlagpole(
         Math.cos(time * 3.2 + prog1 * 2.1) * (prog1 * 1.6);
 
     const yTop0 = flagTop + waveY0;
-    const yTop1 = flagTop + waveY1;
-
-    // Normal / slope for realistic fabric highlight and shadow
     const slope = reducedMotion
       ? 0
       : Math.cos(time * 5.8 - ((prog0 + prog1) / 2) * 4.8);
 
-    // Layer 1: Top crimson bar (14%)
-    ctx.fillStyle = crimsonDark;
-    ctx.beginPath();
-    ctx.moveTo(x0, yTop0);
-    ctx.lineTo(x1, yTop1);
-    ctx.lineTo(x1, yTop1 + flagH * 0.14);
-    ctx.lineTo(x0, yTop0 + flagH * 0.14);
-    ctx.closePath();
-    ctx.fill();
-
-    // Layer 2: Top gold stripe (14%)
-    ctx.fillStyle = goldStripe;
-    ctx.beginPath();
-    ctx.moveTo(x0, yTop0 + flagH * 0.14);
-    ctx.lineTo(x1, yTop1 + flagH * 0.14);
-    ctx.lineTo(x1, yTop1 + flagH * 0.28);
-    ctx.lineTo(x0, yTop0 + flagH * 0.28);
-    ctx.closePath();
-    ctx.fill();
-
-    // Layer 3: Central crimson body (44%)
-    ctx.fillStyle = crimsonMain;
-    ctx.beginPath();
-    ctx.moveTo(x0, yTop0 + flagH * 0.28);
-    ctx.lineTo(x1, yTop1 + flagH * 0.28);
-    ctx.lineTo(x1, yTop1 + flagH * 0.72);
-    ctx.lineTo(x0, yTop0 + flagH * 0.72);
-    ctx.closePath();
-    ctx.fill();
-
-    // Layer 4: Bottom gold stripe (14%)
-    ctx.fillStyle = goldStripe;
-    ctx.beginPath();
-    ctx.moveTo(x0, yTop0 + flagH * 0.72);
-    ctx.lineTo(x1, yTop1 + flagH * 0.72);
-    ctx.lineTo(x1, yTop1 + flagH * 0.86);
-    ctx.lineTo(x0, yTop0 + flagH * 0.86);
-    ctx.closePath();
-    ctx.fill();
-
-    // Layer 5: Bottom crimson bar (14%)
-    ctx.fillStyle = crimsonDark;
-    ctx.beginPath();
-    ctx.moveTo(x0, yTop0 + flagH * 0.86);
-    ctx.lineTo(x1, yTop1 + flagH * 0.86);
-    ctx.lineTo(x1, yTop1 + flagH);
-    ctx.lineTo(x0, yTop0 + flagH);
-    ctx.closePath();
-    ctx.fill();
-
-    // Central Lion Crest: drawn in slices from prog 0.36 to 0.62
-    const midProg = (prog0 + prog1) / 2;
-    if (midProg >= 0.36 && midProg <= 0.62) {
-      const u = (midProg - 0.49) / 0.13; // -1 to 1 across emblem circle
-      if (Math.abs(u) <= 1) {
-        const spanH = Math.sqrt(1 - u * u) * (flagH * 0.18);
-        const emblemCenterY = (yTop0 + yTop1) / 2 + flagH * 0.5;
-
-        // Circular gold medallion border & background
-        ctx.fillStyle = goldStripe;
-        ctx.fillRect(x0, emblemCenterY - spanH, sliceW + 0.4, spanH * 2);
-
-        // Inner carmesí circle fill
-        ctx.fillStyle = crimsonDark;
-        const innerH = spanH * 0.84;
-        ctx.fillRect(x0, emblemCenterY - innerH, sliceW + 0.4, innerH * 2);
-
-        // Lion silhouette in core (gold)
-        if (Math.abs(u) < 0.7) {
-          ctx.fillStyle = goldLion;
-          ctx.fillRect(x0, emblemCenterY - innerH * 0.6, sliceW + 0.4, innerH * 1.2);
-        }
-      }
+    if (hasImg) {
+      // Draw exact slice of the authentic user flag image
+      const sx = prog0 * img.naturalWidth;
+      const sw = (1 / slices) * img.naturalWidth;
+      ctx.drawImage(
+        img,
+        sx,
+        0,
+        sw,
+        img.naturalHeight,
+        x0,
+        yTop0,
+        sliceW + 0.4,
+        flagH,
+      );
+    } else {
+      // Solid base fallback while image initializes
+      ctx.fillStyle = "#8d1830";
+      ctx.fillRect(x0, yTop0, sliceW + 0.4, flagH);
     }
 
     // Fabric Wave Light & Shadow Overlay
     if (!reducedMotion && Math.abs(slope) > 0.05) {
       if (slope > 0) {
-        ctx.fillStyle = `rgba(255, 255, 255, ${(slope * 0.18).toFixed(3)})`;
+        ctx.fillStyle = `rgba(255, 255, 255, ${(slope * 0.16).toFixed(3)})`;
       } else {
-        ctx.fillStyle = `rgba(0, 0, 0, ${(-slope * 0.28).toFixed(3)})`;
+        ctx.fillStyle = `rgba(0, 0, 0, ${(-slope * 0.24).toFixed(3)})`;
       }
-      ctx.beginPath();
-      ctx.moveTo(x0, yTop0);
-      ctx.lineTo(x1, yTop1);
-      ctx.lineTo(x1, yTop1 + flagH);
-      ctx.lineTo(x0, yTop0 + flagH);
-      ctx.closePath();
-      ctx.fill();
+      ctx.fillRect(x0, yTop0, sliceW + 0.4, flagH);
     }
   }
 
