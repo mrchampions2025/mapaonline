@@ -42,8 +42,10 @@ export function drawHarbor(
     ctx.lineTo(i * 10 - 20, i * 5 + 12);
     ctx.stroke();
   }
-  const planks = Math.floor((Math.min(50, deliveries) / 50) * 12);
+  const units = (Math.max(0, Math.min(50, deliveries)) / 50) * 12;
+  const planks = Math.ceil(units);
   for (let i = 0; i < planks; i++) {
+    ctx.globalAlpha = Math.min(1, units - i);
     ctx.fillStyle = i % 2 ? "#cd9b62" : "#e5b578";
     ctx.beginPath();
     ctx.moveTo(-27 + i * 6, -6 + i * 3);
