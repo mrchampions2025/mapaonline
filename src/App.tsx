@@ -205,7 +205,7 @@ export function App() {
           >
             {mine ? "Mi parcela ↗" : "Crear mi lugar ↗"}
           </button>
-          <span className="pill">TEMPORADA 01</span>
+          <a className="pill" href="#bandera">BANDERA Y COSTA ↘</a>
         </nav>
       </header>
       {!api.configured ? (
