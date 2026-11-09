@@ -95,17 +95,22 @@ export function HarborGame({
   }, [onAction, saved]);
   useEffect(() => {
     if (!work) return;
-    const tick = () =>
-      setSeconds(
-        Math.max(
-          0,
-          8 - Math.floor((Date.now() - Date.parse(work.started_at)) / 1000),
-        ),
-      );
+    const tick = () => {
+      const age = Date.now() - Date.parse(work.started_at);
+      if (age > 1800000 && !lock.current) {
+        setWork(null);
+        setLogs([]);
+        position.current = IDLE.to;
+        onAction({ ...IDLE, started: Date.now() });
+        setNotice("La jornada ha caducado. Puedes comenzar otra.");
+        return;
+      }
+      setSeconds(Math.max(0, 8 - Math.floor(age / 1000)));
+    };
     tick();
     const t = setInterval(tick, 500);
     return () => clearInterval(t);
-  }, [work]);
+  }, [work, onAction]);
   useEffect(() => {
     if (!sailing) return;
     const t = setInterval(
