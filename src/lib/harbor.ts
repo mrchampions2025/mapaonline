@@ -6,9 +6,7 @@ export type HarborStatus = {
   next_at: string | null;
   my_deliveries: number;
 };
-export const HARBOR = { x: 1050, y: 1265 },
-  FOREST = { x: 565, y: 1030 },
-  SHIP = { x: 1200, y: 1390 };
+export { HARBOR, FOREST, SHIP } from "./player.ts";
 export async function harborStatus(): Promise<HarborStatus> {
   if (!supabase) throw Error("El juego necesita conectar con el atlas.");
   const { data, error } = await supabase.rpc("harbor_status");

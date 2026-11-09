@@ -13,8 +13,8 @@ export function drawWildlife(
   const b = project(27, 23),
     p = screen(b.x, b.y);
   if (triceratops) {
-    const w = 90 * scale,
-      h = 90 * scale;
+    const w = 58 * scale,
+      h = 58 * scale;
     const frame = Math.floor(time * 12) % 64;
     ctx.save();
     // Measured toe positions in the original sprite. Each foot has a contact
@@ -73,7 +73,7 @@ export function drawWildlife(
     );
     ctx.restore();
   }
-  drawArticulatedFauna(ctx, screen, scale, animalSprites, time);
+  drawArticulatedFauna(ctx, screen, scale * 0.7, animalSprites, time);
   ctx.save();
   ctx.strokeStyle = "#e5efec";
   ctx.lineWidth = Math.max(1, scale * 1.8);

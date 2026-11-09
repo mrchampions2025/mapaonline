@@ -1,4 +1,5 @@
-import { FOREST, HARBOR, SHIP } from "./harbor.ts";
+import { shipPosition } from "./player.ts";
+import { FOREST, HARBOR, SHIP } from "./player.ts";
 type Screen = (x: number, y: number) => { x: number; y: number };
 export function drawHarbor(
   ctx: CanvasRenderingContext2D,
@@ -8,6 +9,8 @@ export function drawHarbor(
   deliveries: number,
   voyage: boolean,
   offset = 0,
+  voyageStarted = 0,
+  now = Date.now(),
 ) {
   const f = screen(FOREST.x, FOREST.y);
   ctx.save();
@@ -50,14 +53,13 @@ export function drawHarbor(
     ctx.fill();
   }
   ctx.restore();
-  const travel = voyage ? Math.sin(time * 0.5) * 55 : 0;
-  const boat = screen(
-    SHIP.x + travel + offset,
-    SHIP.y + Math.sin(time * 0.5) * 8,
-  );
+  const pos = voyage
+    ? shipPosition(voyageStarted, now, offset)
+    : { ...SHIP, facing: 1 };
+  const boat = screen(pos.x, pos.y);
   ctx.save();
   ctx.translate(boat.x, boat.y + Math.sin(time * 1.8) * 1.3 * scale);
-  ctx.scale(scale, scale);
+  ctx.scale(scale * 0.75 * pos.facing, scale * 0.75);
   ctx.fillStyle = "#70e0c125";
   ctx.beginPath();
   ctx.ellipse(0, 15, 53, 14, 0, 0, Math.PI * 2);
@@ -115,15 +117,15 @@ export function drawHarbor(
   ctx.fill();
   ctx.restore();
   if (scale > 0.55) {
-    for (const [pos, label] of [
+    for (const [place, label] of [
       [
         HARBOR,
         deliveries >= 50 ? "Muelle terminado" : "Muelle · obra comunitaria",
       ],
-      [SHIP, "Barco de @.cyberfile"],
+      [pos, "Barco de @.cyberfile"],
       [FOREST, "Bosque · recoge madera"],
     ] as const) {
-      const q = screen(pos.x, pos.y);
+      const q = screen(place.x, place.y);
       ctx.save();
       ctx.font = "600 11px system-ui";
       ctx.textAlign = "center";

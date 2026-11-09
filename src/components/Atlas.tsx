@@ -1,3 +1,5 @@
+import { drawPlayer, drawForest, drawGroundDetail } from "../lib/player-art.ts";
+import { playerPose, shipPosition, type PlayerAction } from "../lib/player.ts";
 import { useEffect, useRef, useState } from "react";
 import type { Bounds, District, Resident, WorldObject } from "../lib/types.ts";
 import { drawWildlife } from "../lib/wildlife.ts";
@@ -19,6 +21,10 @@ type Props = {
   onSelect: (r: Resident | null) => void;
   onPoint: (x: number, y: number) => void;
   onBounds: (b: Bounds) => void;
+  actor?: PlayerAction;
+  playerNick?: string;
+  playerAvatar?: number;
+  voyageStarted?: number;
   gameMode?: boolean;
   activityOpen?: boolean;
   destination?: { x: number; y: number; zoom: number; nonce: number } | null;
@@ -79,7 +85,9 @@ export function Atlas(props: Props) {
   const fit = Math.min(size.w / 1450, size.h / 850),
     scale = fit * cam.zoom;
   const centerY =
-    props.gameMode && props.activityOpen ? size.h * (size.w <= 360 ? 0.19 : 0.28) : size.h / 2;
+    props.gameMode && props.activityOpen
+      ? size.h * (size.w <= 360 ? 0.19 : 0.28)
+      : size.h / 2;
   const activeZone = CAPITAL_ZONES.find(
     (z) => cam.zoom >= 2 && Math.hypot(cam.x - z.x, cam.y - z.y) < 2,
   );
@@ -134,6 +142,37 @@ export function Atlas(props: Props) {
       setCam({ ...initial, zoom: window.innerWidth < 700 ? 1.6 : 1 });
   }, [props.gameMode]);
   useEffect(() => {
+    if (
+      !props.gameMode ||
+      (!props.voyage && (!props.actor || props.actor.kind === "idle"))
+    )
+      return;
+    const tick = () => {
+      const p = props.voyage
+        ? shipPosition(
+            props.voyageStarted ?? 0,
+            Date.now(),
+            props.shipOffset ?? 0,
+          )
+        : playerPose(props.actor!, Date.now());
+      setCam((c) => ({
+        ...c,
+        x: c.x + (p.x - c.x) * 0.3,
+        y: c.y + (p.y - c.y) * 0.3,
+        zoom: props.voyage ? 3.5 : 5,
+      }));
+    };
+    tick();
+    const t = setInterval(tick, 80);
+    return () => clearInterval(t);
+  }, [
+    props.actor,
+    props.voyage,
+    props.voyageStarted,
+    props.shipOffset,
+    props.gameMode,
+  ]);
+  useEffect(() => {
     const timeout = setTimeout(() => {
       props.onBounds({
         left: cam.x - size.w / 2 / scale,
@@ -178,6 +217,7 @@ export function Atlas(props: Props) {
         const p = screen(0, 0);
         ctx.drawImage(image, p.x, p.y, 1600 * scale, 2000 * scale);
       }
+      drawGroundDetail(ctx, screen, scale);
       drawWildlife(
         ctx,
         screen,
@@ -368,11 +408,41 @@ export function Atlas(props: Props) {
         props.deliveries ?? 0,
         !!props.voyage,
         props.shipOffset ?? 0,
+        props.voyageStarted ?? 0,
+        Date.now(),
       );
+      drawForest(ctx, screen, scale);
       drawCapitalZones(ctx, screen, size.w, size.h);
+      if (props.actor) {
+        const boat = props.voyage
+          ? shipPosition(
+              props.voyageStarted ?? 0,
+              Date.now(),
+              props.shipOffset ?? 0,
+            )
+          : null;
+        const actor = boat
+          ? {
+              ...props.actor,
+              kind: "idle" as const,
+              from: boat,
+              to: { x: boat.x, y: boat.y - 7 },
+            }
+          : props.actor;
+        drawPlayer(
+          ctx,
+          screen,
+          boat ? scale * 0.7 : scale,
+          actor,
+          Date.now(),
+          props.playerNick,
+          reducedMotion.matches,
+          AVATARS[props.playerAvatar ?? 1]?.color,
+        );
+      }
     }
     function animate(now: number) {
-      if (!document.hidden && now - lastFrame >= 1000 / 12) {
+      if (!document.hidden && now - lastFrame >= 1000 / 24) {
         draw(now);
         lastFrame = now;
       }
@@ -393,6 +463,10 @@ export function Atlas(props: Props) {
     triSprite,
     animalSprites,
     props.deliveries,
+    props.actor,
+    props.playerNick,
+    props.playerAvatar,
+    props.voyageStarted,
     props.voyage,
     props.shipOffset,
     centerY,
@@ -424,7 +498,14 @@ export function Atlas(props: Props) {
           </button>
         )}
       </nav>
-      <div className={"atlas " + (props.editing ? "editing " : "") + (props.activityOpen ? "activity-open" : "")} ref={box}>
+      <div
+        className={
+          "atlas " +
+          (props.editing ? "editing " : "") +
+          (props.activityOpen ? "activity-open" : "")
+        }
+        ref={box}
+      >
         <canvas
           ref={canvas}
           tabIndex={0}

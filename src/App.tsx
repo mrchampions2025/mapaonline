@@ -1,3 +1,4 @@
+import { IDLE, type PlayerAction } from "./lib/player.ts";
 import {
   useCallback,
   useEffect,
@@ -49,6 +50,8 @@ export function App() {
   const [harbor, setHarbor] = useState<HarborStatus | null>(null),
     [harborError, setHarborError] = useState("");
   const [voyage, setVoyage] = useState(false);
+  const [actor, setActor] = useState<PlayerAction>(IDLE);
+  const [voyageStarted, setVoyageStarted] = useState(0);
   const [shipOffset, setShipOffset] = useState(0);
   const steerShip = useCallback(
     (d: number) => setShipOffset((x) => Math.max(-60, Math.min(60, x + d))),
@@ -692,6 +695,10 @@ export function App() {
                 activityOpen={activity !== "explore"}
                 destination={destination}
                 deliveries={harbor?.deliveries ?? 0}
+                actor={playing ? actor : undefined}
+                playerNick={mine?.nick ?? "Anónimo"}
+                playerAvatar={mine?.avatar}
+                voyageStarted={voyageStarted}
                 voyage={voyage}
                 shipOffset={shipOffset}
                 onActivity={(a) => {
@@ -727,6 +734,8 @@ export function App() {
                   error={harborError}
                   onStatus={setHarbor}
                   onVoyage={setVoyage}
+                  onVoyageStarted={setVoyageStarted}
+                  onAction={setActor}
                   onSteer={steerShip}
                   nick={mine?.nick}
                 />
