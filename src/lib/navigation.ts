@@ -1,5 +1,5 @@
 import { LAND_ROWS } from "./terrain.ts";
-import { FIRST_MARKET } from "./nation.ts";
+import { FIRST_MARKET, SUMMIT_FLAGPOLE } from "./nation.ts";
 import type { Point } from "./player.ts";
 export type Obstacle = {
   left: number;
@@ -12,6 +12,12 @@ export const MARKET_OBSTACLE: Obstacle = {
   right: FIRST_MARKET.x + 51,
   top: FIRST_MARKET.y - 87,
   bottom: FIRST_MARKET.y + 23,
+};
+export const FLAGPOLE_OBSTACLE: Obstacle = {
+  left: SUMMIT_FLAGPOLE.x - 14,
+  right: SUMMIT_FLAGPOLE.x + 14,
+  top: SUMMIT_FLAGPOLE.y - 12,
+  bottom: SUMMIT_FLAGPOLE.y + 10,
 };
 export function landAt(p: Point): boolean {
   if (p.x < 8 || p.x > 1592 || p.y < 8 || p.y > 1992) return false;

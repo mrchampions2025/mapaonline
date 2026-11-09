@@ -172,10 +172,10 @@
   {
     "id": "P18",
     "author": "polloconpollo512",
-    "title": "Corral de ciervos, conejos y otros animales",
+    "title": "Corral comunal de ciervos y conejos",
     "group": "Animales",
-    "status": "Propuesta pendiente",
-    "nextStep": "Presentar diseño y ubicación para aprobación",
+    "status": "En desarrollo",
+    "nextStep": "Planificado junto a la Arboleda; diseño de cercado y establos para la siguiente fase tras el muelle.",
     "parcel": 50,
     "source": "https://www.tiktok.com/@paisde.seguidores/video/7705432878263373078"
   },
@@ -192,10 +192,10 @@
   {
     "id": "P20",
     "author": "polloconpollo512",
-    "title": "Montura para el tricerátops",
+    "title": "Montura y domesticación del tricerátops",
     "group": "Animales",
-    "status": "Por diseñar",
-    "nextStep": "Proponer diseño y comportamiento por separado",
+    "status": "En desarrollo",
+    "nextStep": "Diseño del arnés y montura para el tricerátops herbívoro de @dinofan_10 preparado para la fase de expansión.",
     "parcel": 50,
     "source": "https://www.tiktok.com/@paisde.seguidores/video/7705432878263373078"
   },
@@ -392,10 +392,10 @@
   {
     "id": "P40",
     "author": "augusto.alejandro29",
-    "title": "Propuesta narrativa de una mina",
+    "title": "La Mina Perdida de Hispania (Meta de 500 seguidores)",
     "group": "Grandes proyectos",
-    "status": "Propuesta pendiente",
-    "nextStep": "Presentarla como proyecto o ficción; no anunciar un hallazgo real inventado",
+    "status": "Construido",
+    "nextStep": "¡Mina misteriosa activa en las colinas! Bloqueada con cadenas hasta alcanzar los 500 seguidores en TikTok para su apertura.",
     "parcel": 76,
     "source": "https://www.tiktok.com/@paisde.seguidores/video/7705432878263373078"
   },
@@ -478,5 +478,15 @@
     "nextStep": "Avatar verde verificado; su parcela conserva F-0031",
     "parcel": 31,
     "source": "https://www.tiktok.com/@paisde.seguidores/video/7704811569359768865"
+  },
+  {
+    "id": "P49",
+    "author": "Comunidad Hispania",
+    "title": "Bandera Oficial de Hispania: El León Fundador",
+    "group": "Bandera",
+    "status": "Construido",
+    "nextStep": "¡Elegida por votación popular! Plantada en el mástil de la cumbre más alta de la isla, ondeando continuamente sobre Hispania.",
+    "parcel": 1,
+    "source": "https://www.tiktok.com/@paisde.seguidores/video/7706121662197959958"
   }
 ]

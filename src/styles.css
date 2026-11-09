@@ -896,3 +896,141 @@ footer a {
 .mine-panel{position:absolute;z-index:12;right:12px;top:72px;width:min(340px,calc(100% - 76px));max-height:calc(100dvh - 230px);overflow:auto;padding:20px;border:1px solid #be9b5a66;border-radius:18px;background:#101d29f5;color:#eaf2f1;box-shadow:0 12px 40px #0006;display:grid;gap:12px;pointer-events:auto}.mine-panel h2,.mine-panel p{margin:0}.mine-panel p{font-size:13px;line-height:1.5}.mine-panel small{font-size:11px;color:#a9bfc1;line-height:1.5}.mine-panel progress{width:100%;accent-color:#f3c677}.mine-panel a{color:#f3c677;font-size:13px}.mine-panel .mine-close{position:absolute;right:8px;top:5px;padding:4px 10px;background:none;border:0;font-size:24px}.mine-panel .eyebrow{padding-right:12px;font-size:10px}
 .mine-panel>button:not(.mine-close){border:1px solid #f3c67755;background:#efd49c;color:#172630;padding:12px;border-radius:10px;cursor:pointer;font-weight:700}
 @media(max-width:699px){.mine-panel{top:auto;bottom:78px;left:12px;right:12px;width:auto;max-height:34dvh;padding:16px;gap:10px}.mine-panel h2{font-size:19px}.mine-panel p{font-size:12px}}
+
+
+/* Flagpole Panel, Marker & Proclamation Styles */
+.flagpole-jump {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #2b1f13ee;
+  border: 1px solid #dca63988;
+  color: #fae4a8;
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, transform 0.1s;
+}
+.flagpole-jump:hover {
+  background: #3d2c1cee;
+  border-color: #f3ca4a;
+  transform: translateY(-1px);
+}
+.flag-panel {
+  position: absolute;
+  z-index: 12;
+  right: 12px;
+  top: 72px;
+  width: min(340px, calc(100% - 76px));
+  max-height: calc(100dvh - 230px);
+  overflow: auto;
+  padding: 20px;
+  border: 1px solid #dca639aa;
+  border-radius: 18px;
+  background: #141f2be8;
+  backdrop-filter: blur(8px);
+  color: #eaf2f1;
+  box-shadow: 0 12px 40px #0008;
+  display: grid;
+  gap: 12px;
+  pointer-events: auto;
+}
+.flag-panel h2, .flag-panel p {
+  margin: 0;
+}
+.flag-panel p {
+  font-size: 13px;
+  line-height: 1.5;
+}
+.flag-panel small {
+  font-size: 11px;
+  color: #a9bfc1;
+  line-height: 1.5;
+}
+.flag-panel .flag-close {
+  position: absolute;
+  right: 8px;
+  top: 5px;
+  padding: 4px 10px;
+  background: none;
+  border: 0;
+  color: #a9bfc1;
+  font-size: 24px;
+  cursor: pointer;
+}
+.flag-panel-preview {
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid #dca63955;
+  background: #081017;
+}
+.flag-panel-preview img {
+  width: 100%;
+  aspect-ratio: 20 / 13;
+  object-fit: cover;
+  display: block;
+}
+.flag-panel-cta {
+  display: inline-block;
+  text-align: center;
+  text-decoration: none;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #f5bd38, #dfa024);
+  color: #141f2b;
+  font-weight: 700;
+  font-size: 13px;
+  box-shadow: 0 4px 14px rgba(245, 189, 56, 0.3);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.flag-panel-cta:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(245, 189, 56, 0.45);
+}
+@media (max-width: 699px) {
+  .flag-panel {
+    top: auto;
+    bottom: 78px;
+    left: 12px;
+    right: 12px;
+    width: auto;
+    max-height: 38dvh;
+    padding: 16px;
+    gap: 10px;
+  }
+}
+.flag-candidate.winner {
+  border: 2px solid #f5bd38 !important;
+  box-shadow: 0 0 25px rgba(245, 189, 56, 0.25);
+  position: relative;
+  transform: scale(1.02);
+}
+.winner-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: #f5bd38;
+  color: #111b24;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 4px 8px;
+  border-radius: 6px;
+  letter-spacing: 0.5px;
+  box-shadow: 0 2px 8px #0006;
+  z-index: 2;
+}
+.official-status {
+  display: inline-block;
+  margin: 0 14px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #f5bd38;
+}
+.archive-status {
+  display: inline-block;
+  margin: 0 14px 14px;
+  font-size: 12px;
+  color: #728a94;
+}

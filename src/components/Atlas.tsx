@@ -7,7 +7,7 @@ import {
   HIDDEN_ANIMALS,
   type Adventure,
 } from "../lib/adventure.ts";
-import { MARKET_OBSTACLE, distance } from "../lib/navigation.ts";
+import { MARKET_OBSTACLE, FLAGPOLE_OBSTACLE, distance } from "../lib/navigation.ts";
 import { drawDiscoveries } from "../lib/adventure-art.ts";
 import { drawPlayer, drawForest, drawGroundDetail } from "../lib/player-art.ts";
 import { playerPose } from "../lib/player.ts";
@@ -17,7 +17,8 @@ import { drawWildlife } from "../lib/wildlife.ts";
 import type { AnimalName, AnimalSprites } from "../lib/fauna_atlas.ts";
 import { AVATARS, parcelPosition } from "../lib/world.ts";
 import { CAPITAL_ZONES, drawCapitalZones } from "../lib/zones.ts";
-import { FIRST_MARKET, NATION } from "../lib/nation.ts";
+import { FIRST_MARKET, NATION, OFFICIAL_FLAG } from "../lib/nation.ts";
+import { drawFlagpole, SUMMIT_FLAGPOLE } from "../lib/flagpole-art.ts";
 import { drawMarket } from "../lib/market.ts";
 import { drawHarbor } from "../lib/harbor-art.ts";
 import { HARBOR, SHIP, FOREST } from "../lib/harbor.ts";
@@ -55,6 +56,7 @@ export function Atlas(props: Props) {
     [image, setImage] = useState<HTMLImageElement | null>(null),
     [cam, setCamState] = useState(initial);
   const [mineOpen, setMineOpen] = useState(false);
+  const [flagOpen, setFlagOpen] = useState(false);
   const live = useRef(props);
   live.current = props;
   const renderedCam = useRef<Camera>({ ...initial }),
@@ -75,6 +77,7 @@ export function Atlas(props: Props) {
     if (props.adventure)
       props.adventure.obstacles = [
         MARKET_OBSTACLE,
+        FLAGPOLE_OBSTACLE,
         ...mineObstacles(),
         ...props.objects
           .filter((o) => o.kind === "house")
@@ -555,6 +558,7 @@ export function Atlas(props: Props) {
         ctx.restore();
       }
       drawMine(ctx, screen, scale, now / 1000, reducedMotion.matches);
+      drawFlagpole(ctx, screen, scale, now / 1000, reducedMotion.matches);
       drawForest(ctx, screen, scale);
       drawCapitalZones(ctx, screen, size.w, size.h);
       if (state && props.gameMode) {
@@ -623,6 +627,23 @@ export function Atlas(props: Props) {
             <span aria-hidden="true">↗</span>
           </button>
         ))}
+                <button
+          className="flagpole-jump"
+          aria-pressed={flagOpen}
+          onClick={() => {
+            if (props.adventure) props.adventure.follow = false;
+            setCam({
+              ...SUMMIT_FLAGPOLE,
+              y: SUMMIT_FLAGPOLE.y - 15,
+              zoom: window.innerWidth < 700 ? 6 : 3.8,
+            });
+            setFlagOpen(true);
+          }}
+        >
+          <b style={{ color: "#f3ca4a" }}>🚩</b>
+          <span>Cumbre · Bandera Oficial</span>
+          <span aria-hidden="true">↗</span>
+        </button>
         {market && (
           <button
             className="market-jump"
@@ -790,6 +811,16 @@ export function Atlas(props: Props) {
               }
             }
             if (props.gameMode && props.adventure) {
+              if (distance(p, SUMMIT_FLAGPOLE) < 45) {
+                props.adventure.follow = false;
+                setCam({
+                  ...SUMMIT_FLAGPOLE,
+                  y: SUMMIT_FLAGPOLE.y - 15,
+                  zoom: window.innerWidth < 700 ? 6 : 3.8,
+                });
+                setFlagOpen(true);
+                return;
+              }
               if (distance(p, MINE) < 42) {
                 props.adventure.follow = false;
                 setCam({
@@ -827,6 +858,15 @@ export function Atlas(props: Props) {
               setCam({ x: zone.x, y: zone.y, zoom: 3.5 });
               return;
             }
+            if (distance(p, SUMMIT_FLAGPOLE) < 45) {
+              setCam({
+                ...SUMMIT_FLAGPOLE,
+                y: SUMMIT_FLAGPOLE.y - 15,
+                zoom: window.innerWidth < 700 ? 6 : 3.8,
+              });
+              setFlagOpen(true);
+              return;
+            }
             if (cam.zoom < 2) {
               const nearest = props.districts.reduce<District | null>(
                 (a, b) =>
@@ -858,6 +898,39 @@ export function Atlas(props: Props) {
               ? `ZONA ${activeZone.id} · ${activeZone.name.toLocaleUpperCase("es")}`
               : "EXPLORANDO EL ATLAS"}
         </div>
+        {flagOpen && (
+          <section className="flag-panel" aria-label="Bandera oficial de Hispania">
+            <button
+              className="flag-close"
+              aria-label="Cerrar bandera"
+              onClick={() => setFlagOpen(false)}
+            >
+              ×
+            </button>
+            <span className="eyebrow">SÍMBOLO NACIONAL · PROCLAMACIÓN OFICIAL</span>
+            <h2>🚩 El León Fundador</h2>
+            <div className="flag-panel-preview">
+              <img
+                src="/flags/bandera_1_leon_v2.png"
+                alt="Bandera Oficial: El León Fundador"
+              />
+            </div>
+            <p>
+              <strong>¡Elección ganadora del Día 6!</strong> Proclamada por la comunidad en los comentarios.
+              Plantada en el mástil monumental de la Cumbre Fundadora, flamea continuamente sobre Hispania.
+            </p>
+            <small>
+              Colores: Oro y carmesí. Reto costero: se están auditando los comentarios más votados con oficio para adjudicar las 6 parcelas frente al mar.
+            </small>
+            <a
+              href="#bandera"
+              className="flag-panel-cta"
+              onClick={() => setFlagOpen(false)}
+            >
+              Ver votación y plazas marítimas ↗
+            </a>
+          </section>
+        )}
         {mineOpen && (
           <section className="mine-panel" aria-label="Mina de Hispania">
             <button
@@ -910,6 +983,21 @@ export function Atlas(props: Props) {
           </section>
         )}
         <div className="map-controls">
+          <button
+            aria-label="Ver bandera oficial en la cumbre"
+            title="Bandera Oficial: El León Fundador"
+            onClick={() => {
+              if (props.adventure) props.adventure.follow = false;
+              setCam({
+                ...SUMMIT_FLAGPOLE,
+                y: SUMMIT_FLAGPOLE.y - 15,
+                zoom: window.innerWidth < 700 ? 6 : 3.8,
+              });
+              setFlagOpen(true);
+            }}
+          >
+            🚩
+          </button>
           <button
             aria-label="Ver mina de la colina"
             onClick={() => {
