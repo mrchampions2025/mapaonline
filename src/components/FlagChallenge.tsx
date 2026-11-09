@@ -1,5 +1,5 @@
 const candidates = [
-  { id: 1, name: "El León Fundador", colors: "Oro y carmesí", image: "bandera_1_leon.png" },
+  { id: 1, name: "El León Fundador", colors: "Oro y carmesí", image: "bandera_1_leon_v2.png" },
   { id: 2, name: "La Cruz Naval", colors: "Azul marino y blanco", image: "bandera_2_naval.png" },
   { id: 3, name: "El Sol de Bahía", colors: "Verde y dorado", image: "bandera_3_sol.png" },
 ];
@@ -35,6 +35,6 @@ export function FlagChallenge() {
         </ul>
       </details>
     </div>
-    <small>Diseños de la referencia elegida por el creador para esta votación. Todavía no hay una bandera oficial ni ganadores asignados. Las propuestas anteriores de seguidores se conservan con su autoría en el inventario.</small>
+    <small>Tres propuestas basadas en la referencia elegida por el creador; el emblema del León Fundador se ha rediseñado para esta edición. Todavía no hay una bandera oficial ni ganadores asignados. Las propuestas anteriores de seguidores se conservan con su autoría en el inventario.</small>
   </section>;
 }
